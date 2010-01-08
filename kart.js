@@ -1,37 +1,77 @@
 var kart = (function () {
-	      var epsg32633 = new OpenLayers.Projection("EPSG:32633");
-	      var map, statkart, vector;
+	      var statProj = new OpenLayers.Projection("EPSG:32633"),
+		stdProj = new OpenLayers.Projection("EPSG:4326");
+	      // Private variabler
+	      var map, // OpenLayers.Map kart
+		statkart, // WMS-lag med sjøkartfliser fra statkart
+		vector; // Vektor-lag med "aktiv" informasjon
+
+	      // Private funksjoner
 	      var init = function() {
-		map = new OpenLayers.Map(
-		  "kart",
-		  {
-		    projection:    epsg32633,
-		    maxExtent:     new OpenLayers.Bounds(-2500000.0,3500000.0,3045984.0,9045984.0),
-		    units:         "meter",
-		    maxResolution: 2708,
-		    numZoomLevels: 18
-		  }
-		);
+		map = new OpenLayers.Map('kart', {
+			projection: new OpenLayers.Projection("EPSG:900913"),
+			//displayProjection: stdProj,
+		        maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34),
+			units: "m",
+			maxResolution: 156543.0339,
+			numZoomLevels: 12,
+			controls: [
+			  new OpenLayers.Control.Graticule({numPoints:2,
+							    labelled:true,
+							    visible:true
+							   }),
+			  new OpenLayers.Control.ArgParser(),
+			  new OpenLayers.Control.Navigation(),
+			  new OpenLayers.Control.PanZoomBar(),
+			  new OpenLayers.Control.LayerSwitcher(),
+			  new OpenLayers.Control.Permalink(),
+			  new OpenLayers.Control.MousePosition()
+			    ]
+		} );
 
 		statkart = new OpenLayers.Layer.WMS(
-		  "Sjø, hovedkart 2",
-		  "http://opencache.statkart.no/gatekeeper/gk/gk.open",
+		  "Statens Kartverk sjøkart2",
+		  "http://opencache.statkart.no/gatekeeper/gk/gk.open?",
+		  {layers: "sjo_hovedkart2", format: 'image/png'},
 		  {
-		    layer: "sjo_hovedkart2",
-		    format: "image/png"
+		    attribution:'<a href="http://www.statkart.no">Statens kartverk</a>, <a href="http://www.statkart.no/nor/Land/Fagomrader/Geovekst/">Geovekst</a> og <a href="http://www.statkart.no/?module=Articles;action=Article.publicShow;ID=14194">kommuner</a>',
+		    isBaseLayer: false,
+		    visibility: false,
+		    opacity: 0.5
 		  }
 		);
 
+		var mapnik = new OpenLayers.Layer.OSM.Mapnik("Mapnik");
+
+		var strategy = new OpenLayers.Strategy.BBOX({resFactor:1.5});
 		vector = new OpenLayers.Layer.Vector(
-		  "Informasjon"
+		  "OSM-vektorer",
+		  {
+		    isBaseLayer: false,
+		    strategies: [strategy],
+		    protocol: new OpenLayers.Protocol.HTTP({
+		      url: "/osm/api/0.6/map",
+		      format: new OpenLayers.Format.OSM({})
+		    }),
+		    projection: stdProj,
+		    visibility: false
+		  }
 		);
 
-		map.addLayers([statkart, vector]);
-		
-		map.setCenter(new OpenLayers.LonLat(256361,6648083),8);
+		vector.events.register("refresh", null, function(e) {
+					 alert("refresh: "+e);
+				       });
 
+		map.addLayers([mapnik, statkart, vector]);
+		if (!map.getCenter()) {
+		  map.zoomToMaxExtent();
+		}
 	      };
-	      document.addEventListener("load", init, false);
+
+	      // Hekt koden fast i dokumentet
+	      window.addEventListener("load", init, false);
+
+	      // Offentlige variable
 	      return {
 
 	      };
