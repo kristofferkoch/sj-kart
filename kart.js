@@ -11,10 +11,11 @@ var kart = (function () {
 	    return new OpenLayers.Map('kart', {
 		    projection: new OpenLayers.Projection("EPSG:900913"),
 		    displayProjection: stdProj,
-		    maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34), //TODO: kun Norge
+		    maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34),
+		    restrictedExtent: new OpenLayers.Bounds(424375.89459, 7870878.35909, 3653075.96878, 11618127.23308),
 		    units: "m",
 		    maxResolution: 156543.0339,
-		    numZoomLevels: 12,
+		    //numZoomLevels: 10,
 		    controls: [
 			       new OpenLayers.Control.ArgParser(),
 			       new OpenLayers.Control.Navigation(),
@@ -30,9 +31,10 @@ var kart = (function () {
 					    "http://opencache.statkart.no/gatekeeper/gk/gk.open?",
 	                                    {layers: "sjo_hovedkart2", format: 'image/png'},
 	                                    {attribution:'Sjøkart fra <a href="http://www.statkart.no">Statens kartverk</a>, '+
-					     ' <a href="http://www.statkart.no/nor/Land/Fagomrader/Geovekst/">Geovekst</a> og '+
+					     '<a href="http://www.statkart.no/nor/Land/Fagomrader/Geovekst/">Geovekst</a> og '+
 					     '<a href="http://www.statkart.no/?module=Articles;action=Article.publicShow;ID=14194">kommuner</a>',
 					     isBaseLayer: false,
+					     transitionEffect: 'resize',
 					     visibility: false//,
 					     //opacity: 0.5
 					    }
@@ -93,7 +95,7 @@ var kart = (function () {
 	    statkart = createStatkartLayer();
 	    
 	    // OSM bildefliser
-	    var mapnik = new OpenLayers.Layer.OSM.Mapnik("Mapnik");
+	    var mapnik = new OpenLayers.Layer.OSM.Mapnik("Mapnik", {transitionEffect: 'resize'});
 	    
 	    // OSM vektor-lag
 	    vector = createOSMVectorLayer();
