@@ -5,24 +5,24 @@ var kart = (function () {
 	var map, // OpenLayers.Map kart
 	statkart, // WMS-lag med sjøkartfliser fra statkart
 	vector; // Vektor-lag med "aktiv" informasjon
-	
+
 	// Private funksjoner
 	var createMap = function() {
 	    return new OpenLayers.Map('kart', {
 		    projection: new OpenLayers.Projection("EPSG:900913"),
 		    displayProjection: stdProj,
 		    maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34),
-		    restrictedExtent: new OpenLayers.Bounds(424375.89459, 7870878.35909, 3653075.96878, 11618127.23308),
+		    //restrictedExtent: new OpenLayers.Bounds(0, 7748580, /* 424375.89459, 7870878.35909,*/ 3653075.96878, 11618127.23308),
 		    units: "m",
-		    maxResolution: 156543.0339,
-		    //numZoomLevels: 10,
+		    //maxResolution: 360 ,//156543.0339,
 		    controls: [
-			       new OpenLayers.Control.ArgParser(),
-			       new OpenLayers.Control.Navigation(),
-			       new OpenLayers.Control.PanZoomBar(),
+			       new OpenLayers.Control.Navigation({documentDrag: true}),
+			       new OpenLayers.Control.PanZoom(),
 			       new OpenLayers.Control.LayerSwitcher(),
-			       new OpenLayers.Control.Permalink(),
-			       new OpenLayers.Control.MousePosition()
+			       new OpenLayers.Control.MousePosition(),
+			       new OpenLayers.Control.NavToolbar(),
+			       new OpenLayers.Control.ScaleLine(),
+			       new OpenLayers.Control.Scale()
 			       ]
 		} );
 	};
@@ -89,35 +89,73 @@ var kart = (function () {
 		}
 	    map.events.register("changelayer", map, changelayer);
 	};
+	var cookieSaver = function() {
+	  var getCookie = function (c_name) {
+	    if (document.cookie.length>0) {
+	      c_start=document.cookie.indexOf(c_name + "=");
+	      if (c_start !== -1) {
+		c_start = c_start + c_name.length+1;
+		c_end = document.cookie.indexOf(";",c_start);
+		if (c_end === -1) {
+		  c_end = document.cookie.length;
+		}
+		return unescape(document.cookie.substring(c_start,c_end));
+	      }
+	    }
+	    return "";
+	  };
+	  var moveend = function() {
+	    var c = map.getCenter();
+	    var z = map.getZoom();
+	    var str = c.lon+","+c.lat+","+z;
+	    document.cookie = "view="+str;
+	    location.hash = str;
+	  };
+	  map.events.register("moveend", map, moveend);
+	  map.events.register("zoomend", map, moveend);
+	  var str, lon, lat, zoom;
+	  if (location.hash && location.hash.length > 6) {
+	    str = location.hash.substring(1);
+	    //alert("hash: "+str)
+	  } else {
+	    str = getCookie("view");
+	  }
+	  if (str && str.length > 5 && !map.getCenter()) {
+	    str = str.split(",",3);
+	    lon = str[0];
+	    lat = str[1];
+	    zoom = str[2];
+	    //alert(lon+", "+lat+", "+zoom);
+	    map.setCenter(new OpenLayers.LonLat(lon, lat), zoom);
+	  }
+	};
 	var init = function() {
 	    map = createMap();
-	    
+
 	    statkart = createStatkartLayer();
-	    
+
 	    // OSM bildefliser
 	    var mapnik = new OpenLayers.Layer.OSM.Mapnik("Mapnik", {transitionEffect: 'resize'});
-	    
+
 	    // OSM vektor-lag
 	    vector = createOSMVectorLayer();
 
 	    map.addLayers([mapnik, statkart, vector]);
 	    map.addControl(new OpenLayers.Control.Attribution());
 	    map.addControl(new OpenLayers.Control.Graticule({
-			numPoints:2,
-			    labelled:true,
-			    visible:false
+			    numPoints: 2,
+			    labelled: true,
+			    visible: false
 			    })
 		);
 	    addAutoVisibility(function() {
 		    return map.getZoom() >= 11;
 		}, statkart);
+	    cookieSaver();
 	    if (!map.getCenter()) {
-		//map.zoomToMaxExtent();
-		//http://koch32.info.tm/kart/?zoom=5&lat=9387389.0934&lon=1055440.09772&layers=TBFF
-		//TODO: finn område fra ip eller brukerprofil
 		map.setCenter(new OpenLayers.LonLat(1055440.0, 9387389.0), 5);
 	    }
-	    
+
 	};
 
 	// Hekt koden fast i dokumentet
@@ -127,9 +165,9 @@ var kart = (function () {
 	    // For internet explorer
 	    window.attachEvent("onload", init);
 	}
-	
+
 	// Offentlige variable
 	return {
-	    
+
 	};
     })();
