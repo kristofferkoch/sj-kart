@@ -8,7 +8,7 @@ var kart = (function () {
 
 	// Private funksjoner
 	var createMap = function() {
-	    return new OpenLayers.Map('kart', {
+	    var ret =  new OpenLayers.Map('kart', {
 		    projection: new OpenLayers.Projection("EPSG:900913"),
 		    displayProjection: stdProj,
 		    maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34),
@@ -25,6 +25,8 @@ var kart = (function () {
 			       new OpenLayers.Control.Scale()
 			       ]
 		} );
+	  ret.addControl(new OpenLayers.Control.LoadingPanel());
+	  return ret;
 	};
 	var createStatkartLayer = function() {
 	    return new OpenLayers.Layer.WMS("Statens Kartverk sjøkart2",
@@ -148,6 +150,7 @@ var kart = (function () {
 			    visible: false
 			    })
 		);
+
 	    addAutoVisibility(function() {
 		    return map.getZoom() >= 11;
 		}, statkart);
