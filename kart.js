@@ -14,9 +14,9 @@ var kart = (function () {
 		    maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34, 20037508.34, 20037508.34),
 		    //restrictedExtent: new OpenLayers.Bounds(0, 7748580, /* 424375.89459, 7870878.35909,*/ 3653075.96878, 11618127.23308),
 		    units: "m",
-		    //maxResolution: 360 ,//156543.0339,
+		    maxResolution: 360 ,//156543.0339,
 		    controls: [
-			       new OpenLayers.Control.Navigation({documentDrag: true}),
+			       new OpenLayers.Control.Navigation(),
 			       new OpenLayers.Control.PanZoom(),
 			       new OpenLayers.Control.LayerSwitcher(),
 			       new OpenLayers.Control.MousePosition(),
@@ -25,7 +25,7 @@ var kart = (function () {
 			       new OpenLayers.Control.Scale()
 			       ]
 		} );
-	  ret.addControl(new OpenLayers.Control.LoadingPanel());
+	  //ret.addControl(new OpenLayers.Control.LoadingPanel());
 	  return ret;
 	};
 	var createStatkartLayer = function() {
@@ -88,7 +88,7 @@ var kart = (function () {
 			    force = "no";
 			}
 		    }
-		}
+	    };
 	    map.events.register("changelayer", map, changelayer);
 	};
 	var cookieSaver = function() {
