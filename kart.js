@@ -2,16 +2,8 @@ var GLOB;
 
 (function () {
 	var	proj	= new OpenLayers.Projection("EPSG:900913"),
-		stdProj	= new OpenLayers.Projection("EPSG:4326");
-
-	var gjs = new OpenLayers.Format.GeoJSON()
-
-	var MyWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
-		getURL: function(bounds) {
-			var r = OpenLayers.Layer.WMS.prototype.getURL.apply(this, arguments);
-			return r;
-		}
-	});
+		stdProj	= new OpenLayers.Projection("EPSG:4326"),
+		boundingPoly;
 	
 	/*
 	 * createMap(opt): Returns a customized OpenLayers.Map
@@ -47,8 +39,20 @@ var GLOB;
 	 */
 	var createStatkartLayer = function(opt) {
 		var r;
+		// Create filtering WMS-class
+		var MyWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
+			getURL: function(bounds) {
+				var r;
+				if (boundingPoly && boundingPoly.intersects(bounds.toGeometry())) {
+					r = OpenLayers.Layer.WMS.prototype.getURL.apply(this, arguments);
+				} else {
+					r = "about:blank";
+				}
+				return r;
+			}
+		});
 		r = new MyWMS(
-				"Statens Kartverk sjøkart2",
+				"Statens Kartverk",
 				"http://opencache.statkart.no/gatekeeper/gk/gk.open?",
 				{layers: "sjo_hovedkart2"},
 				{
@@ -94,6 +98,8 @@ var GLOB;
 	 * init(): Initializes map. Installed as an onload-handler in the document
 	 */
 	var init = function() {
+		OpenLayers.Lang.setCode('nb');
+
 		// OSM bildefliser
 		var mapnik = new OpenLayers.Layer.OSM.Mapnik("Mapnik", {transitionEffect: 'resize', isBaseLayer:true});
 
@@ -102,19 +108,16 @@ var GLOB;
 					maxResolution: mapnik.maxResolution
 			};
 		var map = createMap(opt);
-
-		// OSM vektor-lag
 		var vector = createOSMVectorLayer(opt);
-
 		var statkart = createStatkartLayer(opt);
 
 
 		// Tegne-støtte
 		var polygonlayer = new OpenLayers.Layer.Vector(
-				"Polygon Layer",
+				"Polygon tegne-lag",
 				{
 					visibility:false,
-				 	strategy: [new OpenLayers.Strategy.BBOX()],
+				 	strategies: [new OpenLayers.Strategy.Fixed({preload:true})],
 				 	protocol: new OpenLayers.Protocol.HTTP({
 						 	url: "polygon.js",
 						 	format: new OpenLayers.Format.GeoJSON()
@@ -131,14 +134,21 @@ var GLOB;
 				control.activate();
 			} else {
 				control.deactivate();
-				var json = gjs.write(polygonlayer.features, true);
-				alert(json);
-				GLOB=json;		
 			}
 		});
+		
+		polygonlayer.events.register("featureadded", map, (function() {
+			var disabled = false;
+			return function(evt) {
+				if (!disabled) {
+					boundingPoly = evt.feature.geometry;
+					disabled = true;
+				}
+			}
+		})());
 
 		// Legg til lag
-		map.addLayers([mapnik, statkart, polygonlayer]);
+		map.addLayers([mapnik, statkart, vector, polygonlayer]);
 
 		map.addControl(control);
 
