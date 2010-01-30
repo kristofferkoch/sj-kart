@@ -1,6 +1,17 @@
+var GLOB;
+
 (function () {
 	var	proj	= new OpenLayers.Projection("EPSG:900913"),
 		stdProj	= new OpenLayers.Projection("EPSG:4326");
+
+	var gjs = new OpenLayers.Format.GeoJSON()
+
+	var MyWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
+		getURL: function(bounds) {
+			var r = OpenLayers.Layer.WMS.prototype.getURL.apply(this, arguments);
+			return r;
+		}
+	});
 	
 	/*
 	 * createMap(opt): Returns a customized OpenLayers.Map
@@ -21,7 +32,8 @@
 					new OpenLayers.Control.MousePosition(),
 					new OpenLayers.Control.NavToolbar(),
 					new OpenLayers.Control.ScaleLine(),
-					new OpenLayers.Control.Scale()
+					new OpenLayers.Control.Scale(),
+					new OpenLayers.Control.KeyboardDefaults()
 				]
 			}
 		);
@@ -35,7 +47,7 @@
 	 */
 	var createStatkartLayer = function(opt) {
 		var r;
-		r = new OpenLayers.Layer.WMS(
+		r = new MyWMS(
 				"Statens Kartverk sjøkart2",
 				"http://opencache.statkart.no/gatekeeper/gk/gk.open?",
 				{layers: "sjo_hovedkart2"},
@@ -70,10 +82,10 @@
 										url: "/osm/api/0.6/map",
 										format: new OpenLayers.Format.OSM({})
 									}),
-					projection: proj,
-					visibility: false,
-					maxExtent: opt.maxExtent,
-					maxResolution: opt.maxResolution
+					projection: stdProj,
+					visibility: false//,
+					//maxExtent: opt.maxExtent//,
+					//maxResolution: opt.maxResolution
 				}
 			);
 	    return r;
@@ -96,7 +108,39 @@
 
 		var statkart = createStatkartLayer(opt);
 
-		map.addLayers([vector, mapnik, statkart]);
+
+		// Tegne-støtte
+		var polygonlayer = new OpenLayers.Layer.Vector(
+				"Polygon Layer",
+				{
+					visibility:false,
+				 	strategy: [new OpenLayers.Strategy.BBOX()],
+				 	protocol: new OpenLayers.Protocol.HTTP({
+						 	url: "polygon.js",
+						 	format: new OpenLayers.Format.GeoJSON()
+				 		}),
+				 	projection:proj
+				 }
+			);
+		var control = new OpenLayers.Control.DrawFeature(polygonlayer,
+                                OpenLayers.Handler.Polygon);
+		
+		polygonlayer.events.register("visibilitychanged", map, function() {
+			if (polygonlayer.visibility) {
+				alert("Tegning aktivert");
+				control.activate();
+			} else {
+				control.deactivate();
+				var json = gjs.write(polygonlayer.features, true);
+				alert(json);
+				GLOB=json;		
+			}
+		});
+
+		// Legg til lag
+		map.addLayers([mapnik, statkart, polygonlayer]);
+
+		map.addControl(control);
 
 		map.addControl(new OpenLayers.Control.Attribution());
 		map.addControl(new OpenLayers.Control.Graticule({
@@ -105,15 +149,57 @@
 							visible:	false
 						}));
 
-		var zoomend = function() {
-			var z = map.getZoom();
-			if (z >= 11) {
-				map.setBaseLayer(statkart);
-			} else {
-				map.setBaseLayer(mapnik);
-			}
-		};
-		map.events.register("zoomend", map, zoomend);
+		
+		(function() {
+			var mode = "auto";
+			var state = map.baseLayer;
+			var zoom = map.getZoom();
+			var changelayer = function(evt) {
+				var layer = evt.layer, prop = evt.property;
+				if (zoom !== map.getZoom()) {
+					alert("zoom !=");
+				}
+				if (prop === "visibility") {
+					if (layer === mapnik && !mapnik.visibility) {
+						// Mapnik is being turned off
+						if (zoom >= 12) {
+							//alert("setting auto (statkart) mode");
+							mode = "auto";
+						} else {
+							//alert("setting forced statkart mode");
+							mode = statkart;
+						}
+					} else if (layer === statkart && !statkart.visibility) {
+						// Statkart is being turned off
+						if (zoom >= 12) {
+							//alert("setting forced mapnik mode");
+							mode = mapnik;
+						} else {
+							//alert("setting auto (mapnik) mode");
+							mode = "auto";
+						}
+					}
+				}
+			};
+			var zoomend = function() {
+				zoom = map.getZoom();
+				if (mode !== "auto") {
+					return;
+				}
+				if (zoom >= 12) {
+					state = statkart;
+				} else {
+					state = mapnik;
+				}
+				if (map.baseLayer != state) {
+					//alert("autosetting to "+state.name);
+					map.setBaseLayer(state);
+				}
+			};
+			map.events.register("changelayer", map, changelayer);		
+			map.events.register("zoomend", map, zoomend);
+		})();
+		
 		if (!map.getCenter()) {
 			// Sør-Norge:
 			map.setCenter(new OpenLayers.LonLat(1055440.0, 9387389.0), 5);
