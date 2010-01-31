@@ -37,16 +37,17 @@ var GLOB;
 	 * createStatkartLayer(opt): Returns a sjøkart-layer
 	 *   opt: object with maxResolution property
 	 */
-	var createStatkartLayer = function(opt) {
+	var createStatkartLayer = function(osm, opt) {
 		var r;
 		// Create filtering WMS-class
 		var MyWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			getURL: function(bounds) {
 				var r;
-				if (boundingPoly && boundingPoly.intersects(bounds.toGeometry())) {
+				if ((!boundingPoly) || boundingPoly.intersects(bounds.toGeometry())) {
 					r = OpenLayers.Layer.WMS.prototype.getURL.apply(this, arguments);
 				} else {
-					r = "about:blank";
+					//r = "hav.png";
+					r = osm.getURL(bounds);
 				}
 				return r;
 			}
@@ -70,31 +71,6 @@ var GLOB;
 		return r;
 	};
 	/*
-	 * createOSMVectorLayer(opt): Returns a vector-layer
-	 *   opt: object with maxResolution and maxExtent
-	 *        properties
-	 */
-	var createOSMVectorLayer = function(opt) {
-		var strategy = new OpenLayers.Strategy.BBOX({resFactor:1.5});
-		var r;
-		r = new OpenLayers.Layer.Vector(
-				"OSM-vektorer",
-				{
-					isBaseLayer:	false,
-					strategies:		[strategy],
-					protocol:		new OpenLayers.Protocol.HTTP({
-										url: "/osm/api/0.6/map",
-										format: new OpenLayers.Format.OSM({})
-									}),
-					projection: stdProj,
-					visibility: false//,
-					//maxExtent: opt.maxExtent//,
-					//maxResolution: opt.maxResolution
-				}
-			);
-	    return r;
-	};
-	/*
 	 * createPolygonLayer
 	 */
 	var createPolygonLayer = function(map) {
@@ -108,32 +84,33 @@ var GLOB;
 						 	url: "polygon.js",
 						 	format: new OpenLayers.Format.GeoJSON()
 				 		}),
-				 	projection:proj
+				 	projection:proj,
+				 	displayInLayerSwitcher:false
 				 }
 			);
-		var control = new OpenLayers.Control.DrawFeature(r,
+		/*var control = new OpenLayers.Control.DrawFeature(r,
                                 OpenLayers.Handler.Polygon);
-
+		map.addControl(control);
+		
 		r.events.register("visibilitychanged", r, function() {
 			if (r.visibility) {
 				alert("Tegning aktivert");
 				control.activate();
 			} else {
 				var f = new OpenLayers.Format.GeoJSON();
-				GLOB = f.write(r.features[1]);
+				GLOB = f.write(r.features);
 				log(GLOB);
 				control.deactivate();
 			}
 		});
+		*/
 		var featureadded;
 		featureadded = function(evt) {
-			/* "boundingPoly" is "global" variable */
-			alert("feature");
+			/* "boundingPoly" is "global" variable, used by functions in the createStatkart scope */
 			boundingPoly = evt.feature.geometry;
 			r.events.unregister("featureadded", r, featureadded);
 		};
 		r.events.register("featureadded", r, featureadded);
-		map.addControl(control);
 		return r;
 	};
 	/*
@@ -150,15 +127,14 @@ var GLOB;
 					maxResolution: mapnik.maxResolution
 			};
 		var map = createMap(opt);
-		var vector = createOSMVectorLayer(opt);
-		var statkart = createStatkartLayer(opt);
+		var statkart = createStatkartLayer(mapnik, opt);
 
 
 		// Tegne-støtte
 		var polygonlayer = createPolygonLayer(map);
 
 		// Legg til lag
-		map.addLayers([mapnik, statkart, vector, polygonlayer]);
+		map.addLayers([mapnik, statkart, polygonlayer]);
 
 
 		map.addControl(new OpenLayers.Control.Attribution());
