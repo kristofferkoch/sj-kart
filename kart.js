@@ -4,13 +4,13 @@ var GLOB;
 	var	proj	= new OpenLayers.Projection("EPSG:900913"),
 		stdProj	= new OpenLayers.Projection("EPSG:4326"),
 		boundingPoly;
-	
+
 	/*
 	 * createMap(opt): Returns a customized OpenLayers.Map
 	 */
 	var createMap = function(opt) {
 		var r;
-		r = new OpenLayers.Map('kart', 
+		r = new OpenLayers.Map('kart',
 			{
 				projection: proj,
 				displayProjection: stdProj,
@@ -32,7 +32,7 @@ var GLOB;
 		//r.addControl(new OpenLayers.Control.LoadingPanel());
 		return r;
 	};
-	
+
 	/*
 	 * createStatkartLayer(opt): Returns a sjøkart-layer
 	 *   opt: object with maxResolution property
@@ -97,7 +97,7 @@ var GLOB;
 	/*
 	 * createPolygonLayer
 	 */
-	var createPolygonLayer = function() {
+	var createPolygonLayer = function(map) {
 		var r;
 		r = new OpenLayers.Layer.Vector(
 				"Polygon tegne-lag",
@@ -113,12 +113,15 @@ var GLOB;
 			);
 		var control = new OpenLayers.Control.DrawFeature(r,
                                 OpenLayers.Handler.Polygon);
-		
+
 		r.events.register("visibilitychanged", r, function() {
 			if (r.visibility) {
 				alert("Tegning aktivert");
 				control.activate();
 			} else {
+				var f = new OpenLayers.Format.GeoJSON();
+				GLOB = f.write(r.features[1]);
+				log(GLOB);
 				control.deactivate();
 			}
 		});
@@ -130,6 +133,7 @@ var GLOB;
 			r.events.unregister("featureadded", r, featureadded);
 		};
 		r.events.register("featureadded", r, featureadded);
+		map.addControl(control);
 		return r;
 	};
 	/*
@@ -151,12 +155,11 @@ var GLOB;
 
 
 		// Tegne-støtte
-		var polygonlayer = createPolygonlayer();
-		
+		var polygonlayer = createPolygonLayer(map);
+
 		// Legg til lag
 		map.addLayers([mapnik, statkart, vector, polygonlayer]);
 
-		map.addControl(control);
 
 		map.addControl(new OpenLayers.Control.Attribution());
 		map.addControl(new OpenLayers.Control.Graticule({
@@ -165,7 +168,7 @@ var GLOB;
 							visible:	false
 						}));
 
-		
+
 		(function() {
 			var mode = "auto";
 			var state = map.baseLayer;
@@ -212,15 +215,15 @@ var GLOB;
 					map.setBaseLayer(state);
 				}
 			};
-			map.events.register("changelayer", map, changelayer);		
+			map.events.register("changelayer", map, changelayer);
 			map.events.register("zoomend", map, zoomend);
 		})();
-		
+
 		if (!map.getCenter()) {
 			// Sør-Norge:
 			map.setCenter(new OpenLayers.LonLat(1055440.0, 9387389.0), 5);
 		}
-		
+
 	};
 
 	// Hekt koden fast i dokumentet
