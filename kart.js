@@ -113,6 +113,55 @@ var GLOB;
 		r.events.register("featureadded", r, featureadded);
 		return r;
 	};
+	var autoSwitcher = function(map, mapnik, statkart) {
+		var mode = "auto";
+		var state = map.baseLayer;
+		var zoom = map.getZoom();
+		var changelayer = function(evt) {
+			var layer = evt.layer, prop = evt.property;
+			if (zoom !== map.getZoom()) {
+				alert("zoom !=");
+			}
+			if (prop === "visibility") {
+				if (layer === mapnik && !mapnik.visibility) {
+					// Mapnik is being turned off
+					if (zoom >= 12) {
+						//alert("setting auto (statkart) mode");
+						mode = "auto";
+					} else {
+						//alert("setting forced statkart mode");
+						mode = statkart;
+					}
+				} else if (layer === statkart && !statkart.visibility) {
+					// Statkart is being turned off
+					if (zoom >= 12) {
+						//alert("setting forced mapnik mode");
+						mode = mapnik;
+					} else {
+						//alert("setting auto (mapnik) mode");
+						mode = "auto";
+					}
+				}
+			}
+		};
+		var zoomend = function() {
+			zoom = map.getZoom();
+			if (mode !== "auto") {
+				return;
+			}
+			if (zoom >= 12) {
+				state = statkart;
+			} else {
+				state = mapnik;
+			}
+			if (map.baseLayer != state) {
+				//alert("autosetting to "+state.name);
+				map.setBaseLayer(state);
+			}
+		};
+		map.events.register("changelayer", map, changelayer);
+		map.events.register("zoomend", map, zoomend);
+	};
 	/*
 	 * init(): Initializes map. Installed as an onload-handler in the document
 	 */
@@ -136,7 +185,8 @@ var GLOB;
 		// Legg til lag
 		map.addLayers([mapnik, statkart, polygonlayer]);
 
-
+		autoSwitcher(map, mapnik, statkart);
+		
 		map.addControl(new OpenLayers.Control.Attribution());
 		map.addControl(new OpenLayers.Control.Graticule({
 							numPoints:	2,
@@ -144,56 +194,6 @@ var GLOB;
 							visible:	false
 						}));
 
-
-		(function() {
-			var mode = "auto";
-			var state = map.baseLayer;
-			var zoom = map.getZoom();
-			var changelayer = function(evt) {
-				var layer = evt.layer, prop = evt.property;
-				if (zoom !== map.getZoom()) {
-					alert("zoom !=");
-				}
-				if (prop === "visibility") {
-					if (layer === mapnik && !mapnik.visibility) {
-						// Mapnik is being turned off
-						if (zoom >= 12) {
-							//alert("setting auto (statkart) mode");
-							mode = "auto";
-						} else {
-							//alert("setting forced statkart mode");
-							mode = statkart;
-						}
-					} else if (layer === statkart && !statkart.visibility) {
-						// Statkart is being turned off
-						if (zoom >= 12) {
-							//alert("setting forced mapnik mode");
-							mode = mapnik;
-						} else {
-							//alert("setting auto (mapnik) mode");
-							mode = "auto";
-						}
-					}
-				}
-			};
-			var zoomend = function() {
-				zoom = map.getZoom();
-				if (mode !== "auto") {
-					return;
-				}
-				if (zoom >= 12) {
-					state = statkart;
-				} else {
-					state = mapnik;
-				}
-				if (map.baseLayer != state) {
-					//alert("autosetting to "+state.name);
-					map.setBaseLayer(state);
-				}
-			};
-			map.events.register("changelayer", map, changelayer);
-			map.events.register("zoomend", map, zoomend);
-		})();
 
 		if (!map.getCenter()) {
 			// Sør-Norge:
