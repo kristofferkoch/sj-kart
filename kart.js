@@ -95,6 +95,44 @@ var GLOB;
 	    return r;
 	};
 	/*
+	 * createPolygonLayer
+	 */
+	var createPolygonLayer = function() {
+		var r;
+		r = new OpenLayers.Layer.Vector(
+				"Polygon tegne-lag",
+				{
+					visibility:false,
+				 	strategies: [new OpenLayers.Strategy.Fixed({preload:true})],
+				 	protocol: new OpenLayers.Protocol.HTTP({
+						 	url: "polygon.js",
+						 	format: new OpenLayers.Format.GeoJSON()
+				 		}),
+				 	projection:proj
+				 }
+			);
+		var control = new OpenLayers.Control.DrawFeature(r,
+                                OpenLayers.Handler.Polygon);
+		
+		r.events.register("visibilitychanged", r, function() {
+			if (r.visibility) {
+				alert("Tegning aktivert");
+				control.activate();
+			} else {
+				control.deactivate();
+			}
+		});
+		var featureadded;
+		featureadded = function(evt) {
+			/* "boundingPoly" is "global" variable */
+			alert("feature");
+			boundingPoly = evt.feature.geometry;
+			r.events.unregister("featureadded", r, featureadded);
+		};
+		r.events.register("featureadded", r, featureadded);
+		return r;
+	};
+	/*
 	 * init(): Initializes map. Installed as an onload-handler in the document
 	 */
 	var init = function() {
@@ -113,40 +151,8 @@ var GLOB;
 
 
 		// Tegne-støtte
-		var polygonlayer = new OpenLayers.Layer.Vector(
-				"Polygon tegne-lag",
-				{
-					visibility:false,
-				 	strategies: [new OpenLayers.Strategy.Fixed({preload:true})],
-				 	protocol: new OpenLayers.Protocol.HTTP({
-						 	url: "polygon.js",
-						 	format: new OpenLayers.Format.GeoJSON()
-				 		}),
-				 	projection:proj
-				 }
-			);
-		var control = new OpenLayers.Control.DrawFeature(polygonlayer,
-                                OpenLayers.Handler.Polygon);
+		var polygonlayer = createPolygonlayer();
 		
-		polygonlayer.events.register("visibilitychanged", map, function() {
-			if (polygonlayer.visibility) {
-				alert("Tegning aktivert");
-				control.activate();
-			} else {
-				control.deactivate();
-			}
-		});
-		
-		polygonlayer.events.register("featureadded", map, (function() {
-			var disabled = false;
-			return function(evt) {
-				if (!disabled) {
-					boundingPoly = evt.feature.geometry;
-					disabled = true;
-				}
-			}
-		})());
-
 		// Legg til lag
 		map.addLayers([mapnik, statkart, vector, polygonlayer]);
 
