@@ -27,7 +27,7 @@ function getCookie(c_name) {
 		r = new OpenLayers.Map('kart',
 			{
 				projection: proj,
-				displayProjection: stdProj,
+				displayProjection: proj,//stdProj,
 				units: "m",
 				maxResolution: opt.maxResolution,
 				maxExtent: opt.maxExtent,
@@ -90,7 +90,7 @@ function getCookie(c_name) {
 	var createPolygonLayer = function(map) {
 		var r;
 		r = new OpenLayers.Layer.Vector(
-				"Polygon tegne-lag",
+				"Kyst-polygon",
 				{
 					visibility:false,
 				 	strategies: [new OpenLayers.Strategy.Fixed({preload:true})],
@@ -99,7 +99,7 @@ function getCookie(c_name) {
 						 	format: new OpenLayers.Format.GeoJSON()
 				 		}),
 				 	projection:proj,
-				 	displayInLayerSwitcher:false
+				 	displayInLayerSwitcher:true
 				 }
 			);
 		/*var control = new OpenLayers.Control.DrawFeature(r,
@@ -131,6 +131,13 @@ function getCookie(c_name) {
 		var mode = "auto";
 		var state = map.baseLayer;
 		var zoom = map.getZoom();
+		var isStatkartArea = function() {
+			if (!boundingPoly) {
+				return true;
+			}
+			var bounds = map.calculateBounds().toGeometry();
+			return boundingPoly.intersects(bounds);
+		};
 		var changelayer = function(evt) {
 			var layer = evt.layer, prop = evt.property;
 			if (zoom !== map.getZoom()) {
@@ -163,7 +170,7 @@ function getCookie(c_name) {
 			if (mode !== "auto") {
 				return;
 			}
-			if (zoom >= 12) {
+			if (zoom >= 12 && isStatkartArea()) {
 				state = statkart;
 			} else {
 				state = mapnik;
@@ -175,6 +182,7 @@ function getCookie(c_name) {
 		};
 		map.events.register("changelayer", map, changelayer);
 		map.events.register("zoomend", map, zoomend);
+		map.events.register("moveend", map, zoomend);
 		return {getState: function() {
 					if (mode === "auto") {
 						return "auto";
