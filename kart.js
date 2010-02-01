@@ -1,4 +1,18 @@
 var GLOB;
+function getCookie(c_name) {
+	if (document.cookie.length>0) {
+		c_start=document.cookie.indexOf(c_name + "=");
+		if (c_start !== -1) {
+			c_start = c_start + c_name.length + 1;
+			c_end = document.cookie.indexOf(";",c_start);
+			if (c_end === -1) {
+				c_end=document.cookie.length;
+			}
+			return unescape(document.cookie.substring(c_start,c_end));
+		}
+	}
+	return;
+}
 
 (function () {
 	var	proj	= new OpenLayers.Projection("EPSG:900913"),
@@ -161,7 +175,92 @@ var GLOB;
 		};
 		map.events.register("changelayer", map, changelayer);
 		map.events.register("zoomend", map, zoomend);
+		return {getState: function() {
+					if (mode === "auto") {
+						return "auto";
+					} else if (mode === mapnik) {
+						return "osm";
+					} else if (mode === statkart) {
+						return "statkart";
+					}
+				},
+				setState: function(setTo) {
+					if (setTo === "osm") {
+						mode = mapnik;
+					} else if (setTo === "statkart") {
+						mode = statkart;
+					} else {
+						mode = "auto";
+					}
+				}
+			};
 	};
+	var stateKeeper = function(map, switcher) {
+		var cookie_name = "kartstate";
+		var state;
+
+		// Serialized format: lon,lat,zoom,baselayerstate
+		
+		// Serializing function for state
+		var serialize = function(state) {
+			var lat = state.center.lat;
+			var lon = state.center.lon;
+			return lon + "," + lat + "," + state.zoom + "," + state.baselayerstate;
+		};
+		// Deserializing function for state
+		var deserialize = function(text) {
+			var splt;
+			if (!text || !text.split) {
+				return;
+			}
+			splt = text.split(",");
+			if (splt.length != 4) {
+				return;
+			}
+			return {center: new OpenLayers.LonLat(splt[0], splt[1]),
+					zoom: splt[2],
+					baselayerstate: splt[3]
+				};
+		};
+		
+		// Get state from URL
+		state = deserialize(location.hash.substring(1));
+		
+		// Get state from cookies
+		if (!state) {
+			state = deserialize(getCookie(cookie_name));
+		}
+
+		// Enforce saved state
+		if (state) {
+			map.setCenter(state.center, state.zoom, false, false);
+			switcher.setState(state.baselayerstate);
+		}
+		
+		// Get state from user-profile (TODO)
+		// Add hooks to map to follow state
+		var onchange = function() {
+			if (!state) {
+				state = {};
+			}
+			state.center = map.getCenter();
+			state.zoom = map.getZoom();
+			state.baselayerstate = switcher.getState();
+
+			if (state.center) {
+				location.hash = "#" + serialize(state);
+			}
+		};
+		
+		map.events.register("moveend", map, onchange);
+		map.events.register("zoomend", map, onchange);
+		map.events.register("changebaselayer", map, onchange);
+		onchange();
+
+		// Add hooks to follow location.hash
+		// TODO: use map.panTo
+	};
+	
 	/*
 	 * init(): Initializes map. Installed as an onload-handler in the document
 	 */
@@ -171,13 +270,10 @@ var GLOB;
 		// OSM bildefliser
 		var mapnik = new OpenLayers.Layer.OSM.Mapnik("Mapnik", {transitionEffect: 'resize', isBaseLayer:true});
 
-		var opt = {
-					maxExtent: mapnik.maxExtent,
-					maxResolution: mapnik.maxResolution
-			};
+		var opt = {	maxExtent: mapnik.maxExtent,
+					maxResolution: mapnik.maxResolution};
 		var map = createMap(opt);
 		var statkart = createStatkartLayer(mapnik, opt);
-
 
 		// Tegne-støtte
 		var polygonlayer = createPolygonLayer(map);
@@ -185,7 +281,7 @@ var GLOB;
 		// Legg til lag
 		map.addLayers([mapnik, statkart, polygonlayer]);
 
-		autoSwitcher(map, mapnik, statkart);
+		var switcher = autoSwitcher(map, mapnik, statkart);
 		
 		map.addControl(new OpenLayers.Control.Attribution());
 		map.addControl(new OpenLayers.Control.Graticule({
@@ -194,6 +290,7 @@ var GLOB;
 							visible:	false
 						}));
 
+		stateKeeper(map, switcher);
 
 		if (!map.getCenter()) {
 			// Sør-Norge:
