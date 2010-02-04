@@ -1,5 +1,5 @@
 var GLOB;
-function getCookie(c_name) {
+var getCookie = function (c_name) {
 	if (document.cookie.length>0) {
 		c_start=document.cookie.indexOf(c_name + "=");
 		if (c_start !== -1) {
@@ -75,6 +75,7 @@ function getCookie(c_name) {
 									'<a href="http://www.statkart.no/nor/Land/Fagomrader/Geovekst/">Geovekst</a> og '+
 									'<a href="http://www.statkart.no/?module=Articles;action=Article.publicShow;ID=14194">kommuner</a>',
 					isBaseLayer: true,
+					buffer: 0, // 2
 					transitionEffect: 'resize',
 					maxResolution: opt.maxResolution,
 					projection: proj,
@@ -85,7 +86,7 @@ function getCookie(c_name) {
 		return r;
 	};
 	/*
-	 * createPolygonLayer
+	 * createPolygonLayer(map): Load a polygon corresponding to the statkart sjøkart coverage
 	 */
 	var createPolygonLayer = function(map) {
 		var r;
@@ -120,6 +121,7 @@ function getCookie(c_name) {
 		*/
 		var featureadded;
 		featureadded = function(evt) {
+			// Set global variable when polygon is loaded
 			/* "boundingPoly" is "global" variable, used by functions in the createStatkart scope */
 			boundingPoly = evt.feature.geometry;
 			r.events.unregister("featureadded", r, featureadded);
@@ -127,6 +129,14 @@ function getCookie(c_name) {
 		r.events.register("featureadded", r, featureadded);
 		return r;
 	};
+
+	/*
+	 * autoSwitcher: Switches between layers corresponding to where the user is looking, and at what zoomlevel.
+	 *               Statkart is not very good at zoomlevels smaller than 12, and have limited coverage
+	 *               Respects if the user overrides the layer-setting in the layer-chooser
+	 *           Returns: object with setState and getState, returning "auto" if the user have not overridden,
+	 *                    "osm" if osm-layer is forced, and "statkart" if statkart is forced.
+	 */
 	var autoSwitcher = function(map, mapnik, statkart) {
 		var mode = "auto";
 		var state = map.baseLayer;
@@ -146,7 +156,7 @@ function getCookie(c_name) {
 			if (prop === "visibility") {
 				if (layer === mapnik && !mapnik.visibility) {
 					// Mapnik is being turned off
-					if (zoom >= 12) {
+					if (zoom >= 12 && isStatkartArea()) {
 						//alert("setting auto (statkart) mode");
 						mode = "auto";
 					} else {
@@ -155,7 +165,7 @@ function getCookie(c_name) {
 					}
 				} else if (layer === statkart && !statkart.visibility) {
 					// Statkart is being turned off
-					if (zoom >= 12) {
+					if (zoom >= 12 && isStatkartArea()) {
 						//alert("setting forced mapnik mode");
 						mode = mapnik;
 					} else {
@@ -175,7 +185,7 @@ function getCookie(c_name) {
 			} else {
 				state = mapnik;
 			}
-			if (map.baseLayer != state) {
+			if (map.baseLayer !== state) {
 				//alert("autosetting to "+state.name);
 				map.setBaseLayer(state);
 			}
@@ -199,6 +209,14 @@ function getCookie(c_name) {
 						mode = statkart;
 					} else {
 						mode = "auto";
+					}
+					if (state === "auto") {
+						zoomend();
+						return;
+					}
+					state = mode;
+					if (map.baseLayer !== state) {
+						map.setBaseLayer(state);
 					}
 				}
 			};
@@ -256,7 +274,9 @@ function getCookie(c_name) {
 			state.baselayerstate = switcher.getState();
 
 			if (state.center) {
-				location.hash = "#" + serialize(state);
+				var str = serialize(state);
+				location.replace("#" + str);
+				document.cookie = cookie_name + "=" + escape(str);
 			}
 		};
 		
