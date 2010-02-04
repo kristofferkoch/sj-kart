@@ -12,13 +12,11 @@ var getCookie = function (c_name) {
 		}
 	}
 	return;
-}
+};
 
 (function () {
 	var	proj	= new OpenLayers.Projection("EPSG:900913"),
-		stdProj	= new OpenLayers.Projection("EPSG:4326"),
-		boundingPoly;
-
+		stdProj	= new OpenLayers.Projection("EPSG:4326");
 	/*
 	 * createMap(opt): Returns a customized OpenLayers.Map
 	 */
@@ -57,13 +55,20 @@ var getCookie = function (c_name) {
 		var MyWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
 			getURL: function(bounds) {
 				var r;
-				if ((!boundingPoly) || boundingPoly.intersects(bounds.toGeometry())) {
+				if ((!this.boundingPoly) || this.boundingPoly.intersects(bounds.toGeometry())) {
 					r = OpenLayers.Layer.WMS.prototype.getURL.apply(this, arguments);
 				} else {
 					//r = "hav.png";
 					r = osm.getURL(bounds);
 				}
 				return r;
+			},
+			boundingPoly: undefined,
+			setBoundingPoly: function(poly) {
+				this.boundingPoly = poly;
+			},
+			getBoundingPoly: function() {
+				return this.boundingPoly;
 			}
 		});
 		r = new MyWMS(
@@ -88,7 +93,7 @@ var getCookie = function (c_name) {
 	/*
 	 * createPolygonLayer(map): Load a polygon corresponding to the statkart sjøkart coverage
 	 */
-	var createPolygonLayer = function(map) {
+	var createPolygonLayer = function(statkart) {
 		var r;
 		r = new OpenLayers.Layer.Vector(
 				"Kyst-polygon",
@@ -123,7 +128,7 @@ var getCookie = function (c_name) {
 		featureadded = function(evt) {
 			// Set global variable when polygon is loaded
 			/* "boundingPoly" is "global" variable, used by functions in the createStatkart scope */
-			boundingPoly = evt.feature.geometry;
+			statkart.setBoundingPoly(evt.feature.geometry);
 			r.events.unregister("featureadded", r, featureadded);
 		};
 		r.events.register("featureadded", r, featureadded);
@@ -142,11 +147,12 @@ var getCookie = function (c_name) {
 		var state = map.baseLayer;
 		var zoom = map.getZoom();
 		var isStatkartArea = function() {
-			if (!boundingPoly) {
+			var poly = statkart.getBoundingPoly();
+			if (!poly) {
 				return true;
 			}
 			var bounds = map.calculateBounds().toGeometry();
-			return boundingPoly.intersects(bounds);
+			return poly.intersects(bounds);
 		};
 		var changelayer = function(evt) {
 			var layer = evt.layer, prop = evt.property;
@@ -304,7 +310,7 @@ var getCookie = function (c_name) {
 		var statkart = createStatkartLayer(mapnik, opt);
 
 		// Tegne-støtte
-		var polygonlayer = createPolygonLayer(map);
+		var polygonlayer = createPolygonLayer(statkart);
 
 		// Legg til lag
 		map.addLayers([mapnik, statkart, polygonlayer]);
