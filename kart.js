@@ -14,6 +14,16 @@ var getCookie = function (c_name) {
 	return;
 };
 
+var addOnLoad = function(f) {
+	if (window.addEventListener) {
+		window.addEventListener("load", f, false);
+	} else {
+		// For internet explorer
+		window.attachEvent("onload", f);
+	}
+};
+var kart = {};
+
 (function () {
 	var	proj	= new OpenLayers.Projection("EPSG:900913"),
 		stdProj	= new OpenLayers.Projection("EPSG:4326");
@@ -22,6 +32,7 @@ var getCookie = function (c_name) {
 	 */
 	var createMap = function(opt) {
 		var r;
+		var keyboardControl = new OpenLayers.Control.KeyboardDefaults();
 		r = new OpenLayers.Map('kart',
 			{
 				projection: proj,
@@ -37,10 +48,36 @@ var getCookie = function (c_name) {
 					new OpenLayers.Control.NavToolbar(),
 					new OpenLayers.Control.ScaleLine(),
 					new OpenLayers.Control.Scale(),
-					new OpenLayers.Control.KeyboardDefaults()
+					keyboardControl
 				]
 			}
 		);
+		kart.setKeyboardControlEnabled = function(enabled) {
+			if (enabled) {
+				if (!keyboardControl) {
+					//alert("enabling keyboard");
+					keyboardControl = new OpenLayers.Control.KeyboardDefaults();
+					r.addControl(keyboardControl);
+				}
+			} else {
+				if (keyboardControl) {
+					//alert("disabling keyboard");
+					r.removeControl(keyboardControl);
+					keyboardControl.destroy();
+					keyboardControl = undefined;
+				}
+			}
+		};
+		kart.showMessage = function(msg) {
+			var pos = r.getCenter();
+			var size = new OpenLayers.Size(200, 60);
+			var popup = new OpenLayers.Popup("melding",
+								pos, size,	msg,
+								true
+							);
+			popup.closeOnMove = true;
+			r.addPopup(popup);
+		};
 		//r.addControl(new OpenLayers.Control.LoadingPanel());
 		return r;
 	};
@@ -316,16 +353,15 @@ var getCookie = function (c_name) {
 		map.addLayers([mapnik, statkart, polygonlayer]);
 
 		var switcher = autoSwitcher(map, mapnik, statkart);
-		
+
 		map.addControl(new OpenLayers.Control.Attribution());
 		map.addControl(new OpenLayers.Control.Graticule({
 							numPoints:	2,
 							labelled:	true,
 							visible:	false
 						}));
-
 		stateKeeper(map, switcher);
-
+		
 		if (!map.getCenter()) {
 			// Sør-Norge:
 			map.setCenter(new OpenLayers.LonLat(1055440.0, 9387389.0), 5);
@@ -334,11 +370,9 @@ var getCookie = function (c_name) {
 	};
 
 	// Hekt koden fast i dokumentet
-	if (window.addEventListener) {
-		window.addEventListener("load", init, false);
-	} else {
-		// For internet explorer
-		window.attachEvent("onload", init);
-	}
+	addOnLoad(init);
+	
+	// "Public" funksjoner
+	
 })();
 
