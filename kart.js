@@ -172,6 +172,23 @@ var kart = {};
 		return r;
 	};
 
+	var createVectorLayer = function() {
+		var r;
+		var strategy = new OpenLayers.Strategy.BBOX();
+		r = new OpenLayers.Layer.Vector(
+				"Informasjon",
+				{
+					strategies: [strategy],
+					protocol: new OpenLayers.Protocol.HTTP({
+								url: "geo.php",
+								format: new OpenLayers.Format.GeoJSON()
+							}),
+					projection: proj
+				}
+			);
+		return r;
+	};
+
 	/*
 	 * autoSwitcher: Switches between layers corresponding to where the user is looking, and at what zoomlevel.
 	 *               Statkart is not very good at zoomlevels smaller than 12, and have limited coverage
@@ -348,9 +365,10 @@ var kart = {};
 
 		// Tegne-støtte
 		var polygonlayer = createPolygonLayer(statkart);
-
+		
+		var vector = createVectorLayer();
 		// Legg til lag
-		map.addLayers([mapnik, statkart, polygonlayer]);
+		map.addLayers([mapnik, statkart, vector, polygonlayer]);
 
 		var switcher = autoSwitcher(map, mapnik, statkart);
 
