@@ -26,8 +26,9 @@ if (isset($_POST["user"]) && isset($_POST["password"])) {
 	$user = User::newFromName($_POST["user"]);
 	if ($user && $user->checkPassword($_POST["password"]) && $user->getId() !== 0) {
 		/* login ok */
-		$_SESSION["wsUserID"] = $user->getId();
-		$_SESSION["wsUserName"] = $user->getName();
+		//$_SESSION["wsUserID"] = $user->getId();
+		//$_SESSION["wsUserName"] = $user->getName();
+		$user->setCookies();
 		userData($user);
 	} else {
 		/* login failed */
