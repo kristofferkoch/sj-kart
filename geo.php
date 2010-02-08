@@ -14,7 +14,7 @@ function output($bbox) {
 	$c = (double)$bbox[2];
 	$d = (double)$bbox[3];
 	$q = "SELECT geonameid, name, featureclass, featurecode, astext(position) as pos ".
-		"FROM geonames WHERE position && 'BOX($b $a, $d $c)'::box2d LIMIT 500";
+		"FROM geonames WHERE position && 'BOX($b $a, $d $c)'::box2d ORDER BY elevation LIMIT 200";
 	$r = $dbh->query($q);
 	
 	foreach($r as $row) {
