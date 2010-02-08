@@ -189,16 +189,21 @@ var kart = {};
 					projection: stdProj
 				}
 			);
+		var dict = undefined;
 		var options = {
         	hover: true,
 			onSelect: function(feature) {
 				var d = $("featureinfo");
-				d.innerHTML = feature.data.featureclass + ":" + feature.data.featurecode +": " + feature.data.name;
+				var t = feature.data.type;
+				d.innerHTML = dict[t] + " (" + t + "): " + feature.data.name;
 				d.style.display = "block";
 			}
 		};
 		var select = new OpenLayers.Control.SelectFeature(r, options);
-
+		var d = loadJSONDoc("featurecodes.js");
+		d.addCallback(function(result) {
+			dict = result;
+		});
 		return [r, select];
 	};
 

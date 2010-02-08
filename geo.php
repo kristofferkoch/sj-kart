@@ -30,8 +30,8 @@ function output($bbox) {
 				),
 				'properties' => array('name' => $row['name'],
 									'source' => 'geonames',
-									'featureclass' => $row['featureclass'],
-									'featurecode' => $row['featurecode'])
+									'type' => $row['featureclass'].".".$row['featurecode']
+				)
 			);
 		$features[] = $feature;
 		//print $row['pos']."(".$row['featurecode']."): ".$row['name']."\n";
