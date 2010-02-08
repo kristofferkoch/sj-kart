@@ -174,19 +174,32 @@ var kart = {};
 
 	var createVectorLayer = function() {
 		var r;
-		var strategy = new OpenLayers.Strategy.BBOX();
+		var strategy = new OpenLayers.Strategy.BBOX({
+			resFactor: 1
+		});
+		var fmt = new OpenLayers.Format.GeoJSON();
 		r = new OpenLayers.Layer.Vector(
 				"Informasjon",
 				{
 					strategies: [strategy],
 					protocol: new OpenLayers.Protocol.HTTP({
 								url: "geo.php",
-								format: new OpenLayers.Format.GeoJSON()
+								format: fmt
 							}),
-					projection: proj
+					projection: stdProj
 				}
 			);
-		return r;
+		var options = {
+        	hover: true,
+			onSelect: function(feature) {
+				var d = $("featureinfo");
+				d.innerHTML = feature.data.featureclass + ":" + feature.data.featurecode +": " + feature.data.name;
+				d.style.display = "block";
+			}
+		};
+		var select = new OpenLayers.Control.SelectFeature(r, options);
+
+		return [r, select];
 	};
 
 	/*
@@ -366,9 +379,12 @@ var kart = {};
 		// Tegne-støtte
 		var polygonlayer = createPolygonLayer(statkart);
 		
-		var vector = createVectorLayer();
+		var vectorselect = createVectorLayer();
 		// Legg til lag
-		map.addLayers([mapnik, statkart, vector, polygonlayer]);
+		map.addLayers([mapnik, statkart, vectorselect[0], polygonlayer]);
+
+		map.addControl(vectorselect[1]);
+		vectorselect[1].activate();
 
 		var switcher = autoSwitcher(map, mapnik, statkart);
 

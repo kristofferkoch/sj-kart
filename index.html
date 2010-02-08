@@ -82,6 +82,18 @@
 			text-align: center;
 			background: #f8ea51;
 		}
+		#featureinfo {
+			position: absolute;
+			padding: 0.5em;
+			top: 33%;
+			left: 33%;
+			z-index: 100;
+			background:white;
+			display:none;
+			border-style: solid;
+			border-width: 1px;
+			border-color: black;
+		}
 		.loading {
 			background: #f8ea51;
 		}
@@ -101,6 +113,7 @@
   </head>
 	<body>
 		<div id="kart"></div>
+		<div id="featureinfo"></div>
 		<div id="menu" class="olControlNoSelect">
 			<form onsubmit="alert('ikke implementert'); this.elements[0].blur(); return false;">
 			<h2 class="menu">Meny:</h2>
@@ -132,6 +145,7 @@
 				<input type="submit" value="Logg inn" />
 				<input type="reset" value="Avbryt"/>
 			</form>
+			Du kan også logge inn med <a href="/wiki/Spesial:OpenIDLogin" target="_blank">OpenID</a>.
 		</div>
 	</body>
 </html>
