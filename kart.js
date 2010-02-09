@@ -154,6 +154,7 @@ var KART = {};
 			// Set global variable when polygon is loaded
 			/* "boundingPoly" is "global" variable, used by functions in the createStatkart scope */
 			statkart.setBoundingPoly(evt.feature.geometry);
+			KART.boundingPoly = evt.feature.geometry;
 			r.events.unregister("featureadded", r, featureadded);
 			msg.remove();
 		};

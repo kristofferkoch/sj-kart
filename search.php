@@ -1,18 +1,25 @@
 <?php
 header('Content-type: application/javascript; charset=UTF-8');
 require_once("db.inc.php");
+setlocale(LC_ALL, "no_NO.UTF8");
 
-$name = strtolower($_GET["search"]);
+$name = mb_strtolower($_GET["search"], "UTF-8");
 
 $name = pg_escape_string($name);
 
 $res = $dbh->query("SELECT geonameid, name, featureclass, featurecode, astext(position) as pos, ".
 			"abs(length(name)-length('$name')) as ldiff ".
-			"FROM geonames WHERE lower(name) LIKE '$name%' ORDER BY ldiff, elevation LIMIT 100");
+			"FROM geonames WHERE lower(name) LIKE '$name%' ORDER BY ldiff, elevation, population DESC LIMIT 100");
 $res or die("Error: ");
 
 $ret = array();
+$exact = false;
 foreach($res as $row) {
+	if (mb_strtolower($row['name'], "UTF-8") === $name) {
+		$exact = true;
+	} else if ($exact) {
+		break;
+	}
 	preg_match('/POINT\\(([\d\.]+)\\ ([\d\.]+)\\)/', $row['pos'], $m);
 	$x = (double)$m[1];
 	$y = (double)$m[2];

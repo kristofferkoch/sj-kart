@@ -33,7 +33,7 @@ var SEARCH = {};
 		str = form.elements[0].value;
 		d = MochiKit.Async.loadJSONDoc("search.php?search=" + encodeURIComponent(str));
 		d.addCallback(function (result) {
-			var bounds, i, r, size, offset, icon, pos;
+			var bounds, i, r, size, offset, icon, pos, point;
 			
 			if (result.length === 0) {
 				STATUS.add("Ingen resultat for '" + str + "'.", 5);
@@ -57,10 +57,15 @@ var SEARCH = {};
 			
 			for (i = 0; i < result.length && i < 20; i += 1) {
 				r = result[i];
-				icon = new OpenLayers.Icon(getMarker(i), size, offset);
 				pos = new OpenLayers.LonLat(r.lon, r.lat);
 				pos.transform(stdProj, KART.map.getProjectionObject());
-				bounds.extend(pos);
+				
+				point = new OpenLayers.Geometry.Point(pos.lon, pos.lat);
+				if (KART.boundingPoly && KART.boundingPoly.intersects(point)) {
+					bounds.extend(pos);
+				}
+				
+				icon = new OpenLayers.Icon(getMarker(i), size, offset);
 				markers.addMarker(new OpenLayers.Marker(pos, icon));
 				
 				//vis liste med søkreresultetene i div

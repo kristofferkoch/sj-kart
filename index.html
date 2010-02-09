@@ -135,6 +135,9 @@
 			border: 0px;
 			height: 2em;
 		}
+		.attribution {
+			font-size: xx-small;
+		}
     </style>
   </head>
 	<body>
@@ -142,6 +145,7 @@
 		<div id="searchresults">
 			<a href="#closesearch" onclick="SEARCH.close(); return false;" class="closebutton">Lukk</a>
 			<h2 class="result">Søkeresultat:</h2>
+			<span class="attribution">Data fra <a href="http://www.geonames.org/" target="_blank">GeoNames</a>.</span>
 		</div>
 		<div id="menu">
 			<form onsubmit="SEARCH.doSearch(this); return false;">
