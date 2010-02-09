@@ -24,7 +24,7 @@ var KART = {};
 	var	proj	= new OpenLayers.Projection("EPSG:900913"),
 		stdProj	= new OpenLayers.Projection("EPSG:4326"),
 		createMap, createStatkartLayer, createPolygonLayer,
-		createVectorLayer, autoSwitcher, stateKeeper, measureControl;
+		createVectorLayer, stateKeeper, measureControl;
 	/*
 	 * createMap(opt): Returns a customized OpenLayers.Map
 	 */
@@ -231,99 +231,8 @@ var KART = {};
 		return [r, select];
 	};
 
-	/*
-	 * autoSwitcher: Switches between layers corresponding to where the user is looking, and at what zoomlevel.
-	 *               Statkart is not very good at zoomlevels smaller than 12, and have limited coverage
-	 *               Respects if the user overrides the layer-setting in the layer-chooser
-	 *           Returns: object with setState and getState, returning "auto" if the user have not overridden,
-	 *                    "osm" if osm-layer is forced, and "statkart" if statkart is forced.
-	 */
-	autoSwitcher = function (map, mapnik, statkart) {
-		var mode = "auto",
-			state = map.baseLayer,
-			zoom = map.getZoom(),
-			isStatkartArea, changelayer, zoomend;
-		isStatkartArea = function () {
-			var bounds, poly = statkart.getBoundingPoly();
-			if (!poly) {
-				return true;
-			}
-			bounds = map.calculateBounds().toGeometry();
-			return poly.intersects(bounds);
-		};
-		changelayer = function (evt) {
-			var layer = evt.layer,
-				prop = evt.property;
 
-			if (prop === "visibility") {
-				if (layer === mapnik && !mapnik.visibility) {
-					// Mapnik is being turned off
-					if (zoom >= 12 && isStatkartArea()) {
-						//alert("setting auto (statkart) mode");
-						mode = "auto";
-					} else {
-						//alert("setting forced statkart mode");
-						mode = statkart;
-					}
-				} else if (layer === statkart && !statkart.visibility) {
-					// Statkart is being turned off
-					if (zoom >= 12 && isStatkartArea()) {
-						//alert("setting forced mapnik mode");
-						mode = mapnik;
-					} else {
-						//alert("setting auto (mapnik) mode");
-						mode = "auto";
-					}
-				}
-			}
-		};
-		zoomend = function () {
-			zoom = map.getZoom();
-			if (mode !== "auto") {
-				return;
-			}
-			if (zoom >= 12 && isStatkartArea()) {
-				state = statkart;
-			} else {
-				state = mapnik;
-			}
-			if (map.baseLayer !== state) {
-				//alert("autosetting to "+state.name);
-				map.setBaseLayer(state);
-			}
-		};
-		map.events.register("changelayer", map, changelayer);
-		map.events.register("zoomend", map, zoomend);
-		map.events.register("moveend", map, zoomend);
-		return {getState: function () {
-					if (mode === "auto") {
-						return "auto";
-					} else if (mode === mapnik) {
-						return "osm";
-					} else if (mode === statkart) {
-						return "statkart";
-					}
-				},
-				setState: function (setTo) {
-					if (setTo === "osm") {
-						mode = mapnik;
-					} else if (setTo === "statkart") {
-						mode = statkart;
-					} else {
-						mode = "auto";
-					}
-					if (state === "auto") {
-						zoomend();
-						return;
-					}
-					state = mode;
-					if (map.baseLayer !== state) {
-						map.setBaseLayer(state);
-					}
-				}
-			};
-	};
-	stateKeeper = function (map, switcher) {
+	stateKeeper = function (map) {
 		var state, cookie_name = "kartstate",
 			serialize, deserialize, onchange;
 
@@ -362,7 +271,9 @@ var KART = {};
 		// Enforce saved state
 		if (state) {
 			map.setCenter(state.center, state.zoom, false, false);
-			switcher.setState(state.baselayerstate);
+			if (KART.autoswitcher) {
+				KART.autoswitcher.setState(state.baselayerstate);
+			}
 		}
 		
 		// Get state from user-profile (TODO)
@@ -373,7 +284,7 @@ var KART = {};
 			}
 			state.center = map.getCenter();
 			state.zoom = map.getZoom();
-			state.baselayerstate = switcher.getState();
+			state.baselayerstate = KART.autoswitcher ? KART.autoswitcher.getState() : "auto";
 
 			if (state.center) {
 				var str = serialize(state);
@@ -440,7 +351,7 @@ var KART = {};
 		
 		KART.enableMeasure = function (input) {		
 			if (input.checked) {
-				msg = STATUS.add("Tegn linjer på kartet for å måle. Dobbelklikk for å avslutte.");
+				msg = STATUS.add("Tegn linjer på kartet for å måle. Hold inne 'shift' for å tegne for frihånd, dobbelklikk for å avslutte.");
 				measure.activate();
 				checkbox = input;
 			} else {
@@ -482,8 +393,6 @@ var KART = {};
 
 		map.addControl(vectorselect[1]);
 		vectorselect[1].activate();
-
-		switcher = autoSwitcher(map, mapnik, statkart);
 		
 		map.addControl(measureControl());
 		
@@ -493,13 +402,15 @@ var KART = {};
 			labelled:	true,
 			visible:	false
 		}));
-		stateKeeper(map, switcher);
+		stateKeeper(map);
 		
 		if (!map.getCenter()) {
 			// Sør-Norge:
 			map.setCenter(new OpenLayers.LonLat(1055440.0, 9387389.0), 5);
 		}
 		KART.map = map;
+		KART.statkart = statkart;
+		KART.mapnik = mapnik;
 
 	});
 }());
