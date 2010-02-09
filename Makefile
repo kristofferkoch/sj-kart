@@ -6,6 +6,7 @@ clean:
 	rm -f NO.zip NO.txt featureCodes_nb.txt featurecodes.js jslint.js
 	
 check: jslint.js
+	rhino jslint.js statekeeper.js
 	rhino jslint.js autoswitcher.js
 	rhino jslint.js kart.js
 	rhino jslint.js search.js
