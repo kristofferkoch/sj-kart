@@ -13,8 +13,11 @@ function output($bbox) {
 	$b = (double)$bbox[1];
 	$c = (double)$bbox[2];
 	$d = (double)$bbox[3];
-	$q = "SELECT geonameid, name, featureclass, featurecode, astext(position) as pos ".
-		"FROM geonames WHERE position && 'BOX($b $a, $d $c)'::box2d ORDER BY elevation LIMIT 200";
+	$q = "SELECT geonameid, name, featureclass, featurecode, population, elevation, astext(position) as pos ".
+		"FROM geonames WHERE position && 'BOX($b $a, $d $c)'::box2d AND ".
+		"NOT (featureclass = 'T' AND (featurecode='HLL' OR featurecode='MT')) AND ".
+		"NOT (featureclass = 'S' AND (featurecode='FRM')) ".
+		"ORDER BY elevation, population DESC LIMIT 200";
 	$r = $dbh->query($q);
 	
 	foreach($r as $row) {
@@ -30,7 +33,9 @@ function output($bbox) {
 				),
 				'properties' => array('name' => $row['name'],
 									'source' => 'geonames',
-									'type' => $row['featureclass'].".".$row['featurecode']
+									'type' => $row['featureclass'].".".$row['featurecode'],
+									'population' => $row['population'],
+									'elevation' => $row['elevation']
 				)
 			);
 		$features[] = $feature;
