@@ -1,14 +1,18 @@
-//var GLOB;
+"use strict";
+/*jslint white: true, browser: true, onevar: true, undef: true, nomen: true, eqeqeq: true, plusplus: true, bitwise: true, regexp: true, strict: true, newcap: true, immed: true */
+/*global MochiKit: false, OpenLayers: false, STATUS: false*/
+
 var getCookie = function (c_name) {
-	if (document.cookie.length>0) {
-		c_start=document.cookie.indexOf(c_name + "=");
+	var c_start, c_end;
+	if (document.cookie.length > 0) {
+		c_start = document.cookie.indexOf(c_name + "=");
 		if (c_start !== -1) {
 			c_start = c_start + c_name.length + 1;
-			c_end = document.cookie.indexOf(";",c_start);
+			c_end = document.cookie.indexOf(";", c_start);
 			if (c_end === -1) {
-				c_end=document.cookie.length;
+				c_end = document.cookie.length;
 			}
-			return unescape(document.cookie.substring(c_start,c_end));
+			return decodeURIComponent(document.cookie.substring(c_start, c_end));
 		}
 	}
 	return;
@@ -18,13 +22,15 @@ var kart = {};
 
 (function () {
 	var	proj	= new OpenLayers.Projection("EPSG:900913"),
-		stdProj	= new OpenLayers.Projection("EPSG:4326");
+		stdProj	= new OpenLayers.Projection("EPSG:4326"),
+		createMap, createStatkartLayer, createPolygonLayer,
+		createVectorLayer, autoSwitcher, stateKeeper;
 	/*
 	 * createMap(opt): Returns a customized OpenLayers.Map
 	 */
-	var createMap = function(opt) {
-		var r;
-		var keyboardControl = new OpenLayers.Control.KeyboardDefaults();
+	createMap = function (opt) {
+		var r, 
+			keyboardControl = new OpenLayers.Control.KeyboardDefaults();
 		r = new OpenLayers.Map('kart',
 			{
 				projection: proj,
@@ -44,7 +50,7 @@ var kart = {};
 				]
 			}
 		);
-		kart.setKeyboardControlEnabled = function(enabled) {
+		kart.setKeyboardControlEnabled = function (enabled) {
 			if (enabled) {
 				if (!keyboardControl) {
 					//alert("enabling keyboard");
@@ -60,10 +66,10 @@ var kart = {};
 				}
 			}
 		};
-		kart.showMessage = function(msg) {
-			var pos = r.getCenter();
-			var size = new OpenLayers.Size(200, 60);
-			var popup = new OpenLayers.Popup("melding",
+		kart.showMessage = function (msg) {
+			var pos = r.getCenter(),
+				size = new OpenLayers.Size(200, 60),
+				popup = new OpenLayers.Popup("melding",
 								pos, size,	msg,
 								true
 							);
@@ -78,11 +84,11 @@ var kart = {};
 	 * createStatkartLayer(opt): Returns a sjøkart-layer
 	 *   opt: object with maxResolution property
 	 */
-	var createStatkartLayer = function(osm, opt) {
-		var r;
+	createStatkartLayer = function (osm, opt) {
+		var r,
 		// Create filtering WMS-class
-		var MyWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
-			getURL: function(bounds) {
+			MyWMS = OpenLayers.Class(OpenLayers.Layer.WMS, {
+			getURL: function (bounds) {
 				var r;
 				if ((!this.boundingPoly) || this.boundingPoly.intersects(bounds.toGeometry())) {
 					r = OpenLayers.Layer.WMS.prototype.getURL.apply(this, arguments);
@@ -93,51 +99,51 @@ var kart = {};
 				return r;
 			},
 			boundingPoly: undefined,
-			setBoundingPoly: function(poly) {
+			setBoundingPoly: function (poly) {
 				this.boundingPoly = poly;
 			},
-			getBoundingPoly: function() {
+			getBoundingPoly: function () {
 				return this.boundingPoly;
 			}
 		});
 		r = new MyWMS(
-				"Statens Kartverk",
-				"http://opencache.statkart.no/gatekeeper/gk/gk.open?",
-				{layers: "sjo_hovedkart2"},
-				{
-					attribution:	'Sjøkart fra <a href="http://www.statkart.no">Statens kartverk</a>, '+
-									'<a href="http://www.statkart.no/nor/Land/Fagomrader/Geovekst/">Geovekst</a> og '+
-									'<a href="http://www.statkart.no/?module=Articles;action=Article.publicShow;ID=14194">kommuner</a>',
-					isBaseLayer: true,
-					buffer: 0, // 2
-					transitionEffect: 'resize',
-					maxResolution: opt.maxResolution,
-					projection: proj,
-					visibility: false//,
-					//opacity: 0.5
-				}
-			);
+			"Statens Kartverk",
+			"http://opencache.statkart.no/gatekeeper/gk/gk.open?",
+			{layers: "sjo_hovedkart2"},
+			{
+				attribution:	'Sjøkart fra <a href="http://www.statkart.no">Statens kartverk</a>, ' +
+								'<a href="http://www.statkart.no/nor/Land/Fagomrader/Geovekst/">Geovekst</a> og ' +
+								'<a href="http://www.statkart.no/?module=Articles;action=Article.publicShow;ID=14194">kommuner</a>',
+				isBaseLayer: true,
+				buffer: 0, // 2
+				transitionEffect: 'resize',
+				maxResolution: opt.maxResolution,
+				projection: proj,
+				visibility: false//,
+				//opacity: 0.5
+			}
+		);
 		return r;
 	};
 	/*
 	 * createPolygonLayer(map): Load a polygon corresponding to the statkart sjøkart coverage
 	 */
-	var createPolygonLayer = function(statkart) {
-		var r;
+	createPolygonLayer = function (statkart) {
+		var r, msg, featureadded;
 		r = new OpenLayers.Layer.Vector(
-				"Kyst-polygon",
-				{
-					visibility:false,
-				 	strategies: [new OpenLayers.Strategy.Fixed({preload:true})],
-				 	protocol: new OpenLayers.Protocol.HTTP({
-						 	url: "polygon.js",
-						 	format: new OpenLayers.Format.GeoJSON()
-				 		}),
-				 	projection:proj,
-				 	displayInLayerSwitcher:true
-				 }
-			);
-		var msg = STATUS.add("Laster vektor-område...");
+			"Kyst-polygon",
+			{
+				visibility: false,
+				strategies: [new OpenLayers.Strategy.Fixed({preload: true})],
+				protocol: new OpenLayers.Protocol.HTTP({
+					url: "polygon.js",
+					format: new OpenLayers.Format.GeoJSON()
+				}),
+				projection: proj,
+				displayInLayerSwitcher: true
+			}
+		);
+		msg = STATUS.add("Laster vektor-område...");
 		/*var control = new OpenLayers.Control.DrawFeature(r,
                                 OpenLayers.Handler.Polygon);
 		map.addControl(control);
@@ -154,8 +160,7 @@ var kart = {};
 			}
 		});
 		*/
-		var featureadded;
-		featureadded = function(evt) {
+		featureadded = function (evt) {
 			// Set global variable when polygon is loaded
 			/* "boundingPoly" is "global" variable, used by functions in the createStatkart scope */
 			statkart.setBoundingPoly(evt.feature.geometry);
@@ -166,32 +171,33 @@ var kart = {};
 		return r;
 	};
 
-	var createVectorLayer = function() {
-		var r;
+	createVectorLayer = function () {
+		var r, strategy, fmt, prefix, icons, dict, options, select, d;
 
-		var strategy = new OpenLayers.Strategy.BBOX({
+		strategy = new OpenLayers.Strategy.BBOX({
 			resFactor: 2
 		});
-		var fmt = new OpenLayers.Format.GeoJSON();
+		fmt = new OpenLayers.Format.GeoJSON();
 		r = new OpenLayers.Layer.Vector(
-				"Informasjon",
-				{
-					strategies: [strategy],
-					protocol: new OpenLayers.Protocol.HTTP({
-								url: "geo.php",
-								format: fmt
-							}),
-					projection: stdProj
-				}
-			);
-		var prefix = "/icons2/openstreetmap/classic.big/"
-		var icons = {
+			"Informasjon",
+			{
+				strategies: [strategy],
+				protocol: new OpenLayers.Protocol.HTTP({
+					url: "geo.php",
+					format: fmt
+				}),
+				projection: stdProj
+			}
+		);
+		prefix = "/icons2/openstreetmap/classic.big/";
+		icons = {
 			'T.ISL': "places/island.png"
 		};
-		r.events.register("beforefeatureadded", null, function(ev) {
-			var a = ev.feature.attributes;
-			var e = OpenLayers.Util.extend;
-			var def = {cursor:"pointer"};
+		r.events.register("beforefeatureadded", null, function (ev) {
+			var a, e, def;
+			a = ev.feature.attributes;
+			e = OpenLayers.Util.extend;
+			def = {cursor: "pointer"};
 			
 			if (a.type === "P.PPL" || a.type === "S.FRMS") {
 				def.label = a.name;
@@ -204,23 +210,24 @@ var kart = {};
 				def.graphicOpacity = 1;
 			}
 			
-			ev.feature.style = e(def, OpenLayers.Feature.Vector.style['default'])
+			ev.feature.style = e(def, OpenLayers.Feature.Vector.style['default']);
 		
 			return true;
 		});
-		var dict = undefined;
-		var options = {
-        	hover: false,
-			onSelect: function(feature) {
-				var d = $("featureinfo");
-				var t = feature.data.type;
-				d.innerHTML = dict[t] + " (" + t + "): " + feature.data.name + " (" + feature.data.population+") "+ feature.data.elevation;
+		dict = undefined;
+		options = {
+			hover: false,
+			onSelect: function (feature) {
+				var d, t;
+				d = MochiKit.DOM.getElement("featureinfo");
+				t = feature.data.type;
+				d.innerHTML = dict[t] + " (" + t + "): " + feature.data.name + " (" + feature.data.population + ") " + feature.data.elevation;
 				d.style.display = "block";
 			}
 		};
-		var select = new OpenLayers.Control.SelectFeature(r, options);
-		var d = loadJSONDoc("featurecodes.js");
-		d.addCallback(function(result) {
+		select = new OpenLayers.Control.SelectFeature(r, options);
+		d = MochiKit.Async.loadJSONDoc("featurecodes.js");
+		d.addCallback(function (result) {
 			dict = result;
 		});
 		STATUS.handleDeferred(d, "Laster vektorkoder...", "Lastet vektorkoder", "Feil under lasting av vektorkoder");
@@ -234,23 +241,23 @@ var kart = {};
 	 *           Returns: object with setState and getState, returning "auto" if the user have not overridden,
 	 *                    "osm" if osm-layer is forced, and "statkart" if statkart is forced.
 	 */
-	var autoSwitcher = function(map, mapnik, statkart) {
-		var mode = "auto";
-		var state = map.baseLayer;
-		var zoom = map.getZoom();
-		var isStatkartArea = function() {
-			var poly = statkart.getBoundingPoly();
+	autoSwitcher = function (map, mapnik, statkart) {
+		var mode = "auto",
+			state = map.baseLayer,
+			zoom = map.getZoom(),
+			isStatkartArea, changelayer, zoomend;
+		isStatkartArea = function () {
+			var bounds, poly = statkart.getBoundingPoly();
 			if (!poly) {
 				return true;
 			}
-			var bounds = map.calculateBounds().toGeometry();
+			bounds = map.calculateBounds().toGeometry();
 			return poly.intersects(bounds);
 		};
-		var changelayer = function(evt) {
-			var layer = evt.layer, prop = evt.property;
-			if (zoom !== map.getZoom()) {
-				alert("zoom !=");
-			}
+		changelayer = function (evt) {
+			var layer = evt.layer,
+				prop = evt.property;
+
 			if (prop === "visibility") {
 				if (layer === mapnik && !mapnik.visibility) {
 					// Mapnik is being turned off
@@ -273,7 +280,7 @@ var kart = {};
 				}
 			}
 		};
-		var zoomend = function() {
+		zoomend = function () {
 			zoom = map.getZoom();
 			if (mode !== "auto") {
 				return;
@@ -291,7 +298,7 @@ var kart = {};
 		map.events.register("changelayer", map, changelayer);
 		map.events.register("zoomend", map, zoomend);
 		map.events.register("moveend", map, zoomend);
-		return {getState: function() {
+		return {getState: function () {
 					if (mode === "auto") {
 						return "auto";
 					} else if (mode === mapnik) {
@@ -300,7 +307,7 @@ var kart = {};
 						return "statkart";
 					}
 				},
-				setState: function(setTo) {
+				setState: function (setTo) {
 					if (setTo === "osm") {
 						mode = mapnik;
 					} else if (setTo === "statkart") {
@@ -319,26 +326,26 @@ var kart = {};
 				}
 			};
 	};
-	var stateKeeper = function(map, switcher) {
-		var cookie_name = "kartstate";
-		var state;
+	stateKeeper = function (map, switcher) {
+		var state, cookie_name = "kartstate",
+			serialize, deserialize, onchange;
 
 		// Serialized format: lon,lat,zoom,baselayerstate
 		
 		// Serializing function for state
-		var serialize = function(state) {
-			var lat = state.center.lat;
-			var lon = state.center.lon;
+		serialize = function (state) {
+			var lat = state.center.lat,
+				lon = state.center.lon;
 			return lon + "," + lat + "," + state.zoom + "," + state.baselayerstate;
 		};
 		// Deserializing function for state
-		var deserialize = function(text) {
+		deserialize = function (text) {
 			var splt;
 			if (!text || !text.split) {
 				return;
 			}
 			splt = text.split(",");
-			if (splt.length != 4) {
+			if (splt.length !== 4) {
 				return;
 			}
 			return {center: new OpenLayers.LonLat(splt[0], splt[1]),
@@ -363,7 +370,7 @@ var kart = {};
 		
 		// Get state from user-profile (TODO)
 		// Add hooks to map to follow state
-		var onchange = function() {
+		onchange = function () {
 			if (!state) {
 				state = {};
 			}
@@ -374,7 +381,7 @@ var kart = {};
 			if (state.center) {
 				var str = serialize(state);
 				location.replace("#" + str);
-				document.cookie = cookie_name + "=" + escape(str);
+				document.cookie = cookie_name + "=" + encodeURIComponent(str);
 			}
 		};
 		
@@ -390,35 +397,41 @@ var kart = {};
 	/*
 	 * init(): Initializes map. Installed as an onload-handler in the document
 	 */
-	var init = function() {
+	MochiKit.DOM.addLoadEvent(function () {
+		var mapnik, opt, map, statkart, polygonlayer, vectorselect, switcher;
 		OpenLayers.Lang.setCode('nb');
 
 		// OSM bildefliser
-		var mapnik = new OpenLayers.Layer.OSM.Mapnik("Mapnik", {transitionEffect: 'resize', isBaseLayer:true});
+		mapnik = new OpenLayers.Layer.OSM.Mapnik("Mapnik", {
+			transitionEffect: 'resize',
+			isBaseLayer: true
+		});
 
-		var opt = {	maxExtent: mapnik.maxExtent,
-					maxResolution: mapnik.maxResolution};
-		var map = createMap(opt);
-		var statkart = createStatkartLayer(mapnik, opt);
+		opt = {
+			maxExtent: mapnik.maxExtent,
+			maxResolution: mapnik.maxResolution
+		};
+		map = createMap(opt);
+		statkart = createStatkartLayer(mapnik, opt);
 
 		// Tegne-støtte
-		var polygonlayer = createPolygonLayer(statkart);
+		polygonlayer = createPolygonLayer(statkart);
 		
-		var vectorselect = createVectorLayer();
+		vectorselect = createVectorLayer();
 		// Legg til lag
 		map.addLayers([mapnik, statkart, vectorselect[0], polygonlayer]);
 
 		map.addControl(vectorselect[1]);
 		vectorselect[1].activate();
 
-		var switcher = autoSwitcher(map, mapnik, statkart);
+		switcher = autoSwitcher(map, mapnik, statkart);
 
 		map.addControl(new OpenLayers.Control.Attribution());
 		map.addControl(new OpenLayers.Control.Graticule({
-							numPoints:	2,
-							labelled:	true,
-							visible:	false
-						}));
+			numPoints:	2,
+			labelled:	true,
+			visible:	false
+		}));
 		stateKeeper(map, switcher);
 		
 		if (!map.getCenter()) {
@@ -426,7 +439,6 @@ var kart = {};
 			map.setCenter(new OpenLayers.LonLat(1055440.0, 9387389.0), 5);
 		}
 
-	};
-	addLoadEvent(init);
-})();
+	});
+}());
 

@@ -8,7 +8,8 @@
 	<script src="/proj4js/lib/proj4js-compressed.js" type="text/javascript"></script>
 	<script src="/openlayers/OpenLayers.js" type="text/javascript"></script>
 	<script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js" type="text/javascript"></script>
-
+	
+	<script type="text/javascript">MochiKit = {__export__: false};</script>
 	<script src="/javascript/mochikit/MochiKit.js" type="text/javascript"></script>
 	
     <script src="status.js" type="text/javascript"></script>
@@ -131,7 +132,7 @@
 		</div>
 		<div id="status" unselectable="on">Vennligst vent..</div>
 		<div id="login">
-			<form onsubmit="user.doLogin(this);return false;" onreset="user.cancelLogin(this); return false;">
+			<form onsubmit="USER.doLogin(this);return false;" onreset="USER.cancelLogin(this); return false;">
 				<table>
 					<tr>
 						<td class="formlabel">Brukernavn:</td>
