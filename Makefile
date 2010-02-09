@@ -3,8 +3,14 @@ all: geonames_import featurecodes.js
 
 
 clean:
-	rm -f NO.zip NO.txt featureCodes_nb.txt featurecodes.js
+	rm -f NO.zip NO.txt featureCodes_nb.txt featurecodes.js jslint.js
 	
+check: jslint.js
+	rhino jslint.js search.js
+	rhino jslint.js kart.js
+	rhino jslint.js bruker.js
+	rhino jslint.js status.js
+
 jslint.js:
 	wget http://jslint.com/rhino/jslint.js
 NO.zip:
