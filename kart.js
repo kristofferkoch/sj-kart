@@ -221,6 +221,12 @@ var KART = {};
 			dict = result;
 		});
 		STATUS.handleDeferred(d, "Laster vektorkoder...", "Lastet vektorkoder", "Feil under lasting av vektorkoder");
+		KART.getCode = function (code) {
+			if (!dict) {
+				return;
+			}
+			return dict[code];
+		};
 		return [r, select];
 	};
 

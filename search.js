@@ -5,7 +5,19 @@ var SEARCH = {};
 
 (function () {
 	var stdProj	= new OpenLayers.Projection("EPSG:4326"),
-		resultDiv, div, closebutton, markers;
+		resultDiv, div, closebutton, markers,
+		colors = ["blue", "brown", "darkgreen", "green", "orange", "paleblue", "pink", "purple", "red", "yellow"],
+		letters = [
+			"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K",
+			"L", "M", "N", "O", "P", "Q"
+		], getMarker;
+	
+	getMarker = function (i) {
+		var color, letter;
+		color = colors[(i % letters.length + parseInt(i / colors.length, 10)) % colors.length];
+		letter = letters[i % letters.length];
+		return "markers/" + color + "_Marker" + letter + ".png";
+	};
 
 	SEARCH.close = function () {
 		MochiKit.DOM.replaceChildNodes(resultDiv);
@@ -30,7 +42,7 @@ var SEARCH = {};
 			
 			SEARCH.close();
 			
-			size = new OpenLayers.Size(32, 32);
+			size = new OpenLayers.Size(20, 34);
 			offset = new OpenLayers.Pixel(-(size.w / 2), -size.h);
 
 			//opprett et midlertidig vektorlag med søkeresultatene
@@ -43,9 +55,9 @@ var SEARCH = {};
 			//Finn maksimal bbox som alle punktene passer i
 			bounds = new OpenLayers.Bounds();
 			
-			for (i = 0; i < result.length; i += 1) {
+			for (i = 0; i < result.length && i < 20; i += 1) {
 				r = result[i];
-				icon = new OpenLayers.Icon('/icons2/openstreetmap/classic.big/sightseeing.png', size, offset);
+				icon = new OpenLayers.Icon(getMarker(i), size, offset);
 				pos = new OpenLayers.LonLat(r.lon, r.lat);
 				pos.transform(stdProj, KART.map.getProjectionObject());
 				bounds.extend(pos);
@@ -53,20 +65,24 @@ var SEARCH = {};
 				
 				//vis liste med søkreresultetene i div
 				resultDiv.appendChild(
-					MochiKit.DOM.DIV(null, MochiKit.DOM.A({
-						href: "#" + r.name,
-						onclick: (function (r, pos) {
-							return function () {
-								// TODO: pan to pos
-								if (KART.map.getZoom() < 10) {
-									KART.map.zoomTo(10);
-								}
-								KART.map.panTo(pos);
-								return false;
-							};
-						}(r, pos))
-					},
-					MochiKit.DOM.IMG({src: icon.url}), r.name)
+					MochiKit.DOM.DIV(null, MochiKit.DOM.IMG({
+						src: icon.url,
+						'class': 'marker'
+					}),
+						MochiKit.DOM.A({
+							href: "#" + r.name,
+							onclick: (function (r, pos) {
+								return function () {
+									// pan to pos
+									if (KART.map.getZoom() < 13) {
+										KART.map.zoomTo(13);
+									}
+									KART.map.panTo(pos);
+									return false;
+								};
+							}(r, pos))
+						},
+						r.name + " (" + KART.getCode(r.type) + ")")
 					)
 				);
 			}
