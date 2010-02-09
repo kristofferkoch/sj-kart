@@ -13,11 +13,16 @@ $res or die("Error: ");
 
 $ret = array();
 foreach($res as $row) {
+	preg_match('/POINT\\(([\d\.]+)\\ ([\d\.]+)\\)/', $row['pos'], $m);
+	$x = (double)$m[1];
+	$y = (double)$m[2];
+	
 	$ret[] = array(
 		'id' => $row['geonameid'],
 		'name' => $row['name'],
 		'type' => $row['featureclass'].".".$row['featurecode'],
-		'position' => $row['pos']
+		'lon' => $y,
+		'lat' => $x
 	);
 }
 echo json_encode($ret);

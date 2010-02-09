@@ -79,22 +79,11 @@
 			top: 0px;
 			left: 33%;
 			right: 33%;
-			z-index: 100;
+			z-index: 102;
 			text-align: center;
 			background: #f8ea51;
 		}
-		#featureinfo {
-			position: absolute;
-			padding: 0.5em;
-			top: 33%;
-			left: 33%;
-			z-index: 100;
-			background:white;
-			display:none;
-			border-style: solid;
-			border-width: 1px;
-			border-color: black;
-		}
+
 		.loading {
 			background: #f8ea51;
 		}
@@ -110,19 +99,54 @@
 			padding-left: 6px;
 			list-style-type: none;
 		}
+		#searchresults {
+			position: absolute;
+			display: none;
+			z-index: 101;
+			left: 50px;
+			top: 5%;
+			background: white;
+			border-style: solid;
+			border-width: 1px;
+			border-color: black;
+			opacity: 0.5;
+			padding: 0.5em;
+			padding-right: 24px;
+		}
+		#searchresults:hover {
+			opacity: 1;
+		}
+		.closebutton {
+			position: absolute;
+			top: 1px;
+			right: 1px;
+			width: 20px;
+			height: 20px;
+			background: red;
+			font-size: 0px;
+			overflow: hidden;
+			clear: both;
+		}
+		h2.result {
+			margin: 0px;
+			clear: both;
+		}
     </style>
   </head>
 	<body>
 		<div id="kart"></div>
-		<div id="featureinfo" class="olControlNoSelect" unselectable="on"></div>
+		<div id="searchresults">
+			<a href="#closesearch" onclick="SEARCH.close(); return false;" class="closebutton">Lukk</a>
+			<h2 class="result">Søkeresultat:</h2>
+		</div>
 		<div id="menu">
 			<form onsubmit="SEARCH.doSearch(this); return false;">
 			<h2 class="menu">Meny:</h2>
 			<ul class="menu">
 				<li>
 					<input type="text" name="search" size="15"
-							onfocus="kart.setKeyboardControlEnabled(false);"
-							onblur="kart.setKeyboardControlEnabled(true);"/>
+							onfocus="KART.setKeyboardControlEnabled(false);"
+							onblur="KART.setKeyboardControlEnabled(true);"/>
 					<input type="submit" value="Søk" />
 				</li>
 				<li><a href="/wiki" target="_blank">Wiki forside</a></li>

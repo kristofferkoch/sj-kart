@@ -1,7 +1,6 @@
 "use strict";
 /*jslint white: true, onevar: true, undef: true, nomen: true, eqeqeq: true, plusplus: true, bitwise: true, regexp: true, strict: true, newcap: true, immed: true */
-/*global MochiKit: false, kart: false, STATUS: false */
-var MochiKit, kart, STATUS;
+/*global MochiKit: false, KART: false, STATUS: false */
 var USER = {};
 
 (function () {
@@ -10,7 +9,7 @@ var USER = {};
 
 	setFormEnabled = function (en) {
 		var i, form;
-		kart.setKeyboardControlEnabled(!en);
+		KART.setKeyboardControlEnabled(!en);
 		form = loginDiv.getElementsByTagName("form")[0];
 		for (i = 0; i < form.elements.length; i += 1) {
 			form.elements[i].disabled = !en;

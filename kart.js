@@ -18,7 +18,7 @@ var getCookie = function (c_name) {
 	return;
 };
 
-var kart = {};
+var KART = {};
 
 (function () {
 	var	proj	= new OpenLayers.Projection("EPSG:900913"),
@@ -50,7 +50,7 @@ var kart = {};
 				]
 			}
 		);
-		kart.setKeyboardControlEnabled = function (enabled) {
+		KART.setKeyboardControlEnabled = function (enabled) {
 			if (enabled) {
 				if (!keyboardControl) {
 					//alert("enabling keyboard");
@@ -65,16 +65,6 @@ var kart = {};
 					keyboardControl = undefined;
 				}
 			}
-		};
-		kart.showMessage = function (msg) {
-			var pos = r.getCenter(),
-				size = new OpenLayers.Size(200, 60),
-				popup = new OpenLayers.Popup("melding",
-								pos, size,	msg,
-								true
-							);
-			popup.closeOnMove = true;
-			r.addPopup(popup);
 		};
 		//r.addControl(new OpenLayers.Control.LoadingPanel());
 		return r;
@@ -438,6 +428,7 @@ var kart = {};
 			// Sør-Norge:
 			map.setCenter(new OpenLayers.LonLat(1055440.0, 9387389.0), 5);
 		}
+		KART.map = map;
 
 	});
 }());
