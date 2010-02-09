@@ -2,12 +2,7 @@ var STATUS = {};
 
 (function() {
 	var div;
-	
-	addOnLoad(function() {
-		div = $("status");
-		replaceChildNodes(div);
-	});
-	
+
 	STATUS.add = function(text, timeout, htmlClass) {
 		var cancelTimeout, def;
 		if (!div) { return; }
@@ -21,7 +16,12 @@ var STATUS = {};
 		div.appendChild(msgDiv);
 		
 		var remove = function() {
-			div.removeChild(msgDiv);
+			blindUp(msgDiv, {
+						afterFinish: function() {
+							div.removeChild(msgDiv);
+						}
+					}
+				);
 			def = undefined;
 		};
 		
@@ -60,5 +60,9 @@ var STATUS = {};
 			STATUS.add(errorText+": " + err , timeout, "statusErrorMsg");
 		});
 	};
-	
+		
+	addLoadEvent(function() {
+		div = $("status");
+		replaceChildNodes(div);
+	});
 })();

@@ -1,4 +1,4 @@
-var GLOB;
+//var GLOB;
 var getCookie = function (c_name) {
 	if (document.cookie.length>0) {
 		c_start=document.cookie.indexOf(c_name + "=");
@@ -14,14 +14,6 @@ var getCookie = function (c_name) {
 	return;
 };
 
-var addOnLoad = function(f) {
-	if (window.addEventListener) {
-		window.addEventListener("load", f, false);
-	} else {
-		// For internet explorer
-		window.attachEvent("onload", f);
-	}
-};
 var kart = {};
 
 (function () {
@@ -145,6 +137,7 @@ var kart = {};
 				 	displayInLayerSwitcher:true
 				 }
 			);
+		var msg = STATUS.add("Laster vektor-område...");
 		/*var control = new OpenLayers.Control.DrawFeature(r,
                                 OpenLayers.Handler.Polygon);
 		map.addControl(control);
@@ -167,6 +160,7 @@ var kart = {};
 			/* "boundingPoly" is "global" variable, used by functions in the createStatkart scope */
 			statkart.setBoundingPoly(evt.feature.geometry);
 			r.events.unregister("featureadded", r, featureadded);
+			msg.remove();
 		};
 		r.events.register("featureadded", r, featureadded);
 		return r;
@@ -174,8 +168,9 @@ var kart = {};
 
 	var createVectorLayer = function() {
 		var r;
+
 		var strategy = new OpenLayers.Strategy.BBOX({
-			resFactor: 1
+			resFactor: 2
 		});
 		var fmt = new OpenLayers.Format.GeoJSON();
 		r = new OpenLayers.Layer.Vector(
@@ -189,13 +184,37 @@ var kart = {};
 					projection: stdProj
 				}
 			);
+		var prefix = "/icons2/openstreetmap/classic.big/"
+		var icons = {
+			'T.ISL': "places/island.png"
+		};
+		r.events.register("beforefeatureadded", null, function(ev) {
+			var a = ev.feature.attributes;
+			var e = OpenLayers.Util.extend;
+			var def = {cursor:"pointer"};
+			
+			if (a.type === "P.PPL" || a.type === "S.FRMS") {
+				def.label = a.name;
+				def.fontSize = "0.4em";
+			}
+			if (icons[a.type] !== undefined) {
+				def.externalGraphic = prefix + icons[a.type];
+				def.graphicWidth = 20;
+				def.graphicHeight = 20;
+				def.graphicOpacity = 1;
+			}
+			
+			ev.feature.style = e(def, OpenLayers.Feature.Vector.style['default'])
+		
+			return true;
+		});
 		var dict = undefined;
 		var options = {
-        	hover: true,
+        	hover: false,
 			onSelect: function(feature) {
 				var d = $("featureinfo");
 				var t = feature.data.type;
-				d.innerHTML = dict[t] + " (" + t + "): " + feature.data.name;
+				d.innerHTML = dict[t] + " (" + t + "): " + feature.data.name + " (" + feature.data.population+") "+ feature.data.elevation;
 				d.style.display = "block";
 			}
 		};
@@ -204,6 +223,7 @@ var kart = {};
 		d.addCallback(function(result) {
 			dict = result;
 		});
+		STATUS.handleDeferred(d, "Laster vektorkoder...", "Lastet vektorkoder", "Feil under lasting av vektorkoder");
 		return [r, select];
 	};
 
@@ -407,11 +427,6 @@ var kart = {};
 		}
 
 	};
-
-	// Hekt koden fast i dokumentet
-	addOnLoad(init);
-	
-	// "Public" funksjoner
-	
+	addLoadEvent(init);
 })();
 

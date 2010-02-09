@@ -114,5 +114,5 @@ var user = {};
 		d.addCallback(authCallback);
 		STATUS.handleDeferred(d, "Sjekker innlogging...", null, "Feil under innloggingssjekk");
 	};
-	addOnLoad(init);
+	addLoadEvent(init);
 })();
