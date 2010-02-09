@@ -24,7 +24,7 @@ var KART = {};
 	var	proj	= new OpenLayers.Projection("EPSG:900913"),
 		stdProj	= new OpenLayers.Projection("EPSG:4326"),
 		createMap, createStatkartLayer, createPolygonLayer,
-		createVectorLayer, autoSwitcher, stateKeeper;
+		createVectorLayer, autoSwitcher, stateKeeper, measureControl;
 	/*
 	 * createMap(opt): Returns a customized OpenLayers.Map
 	 */
@@ -34,7 +34,7 @@ var KART = {};
 		r = new OpenLayers.Map('kart',
 			{
 				projection: proj,
-				displayProjection: proj,//stdProj,
+				displayProjection: stdProj,
 				units: "m",
 				maxResolution: opt.maxResolution,
 				maxExtent: opt.maxExtent,
@@ -221,7 +221,7 @@ var KART = {};
 		d.addCallback(function (result) {
 			dict = result;
 		});
-		STATUS.handleDeferred(d, "Laster vektorkoder...", "Lastet vektorkoder", "Feil under lasting av vektorkoder");
+		STATUS.handleDeferred(d, "Laster vektorkoder...", null, "Feil under lasting av vektorkoder");
 		KART.getCode = function (code) {
 			if (!dict) {
 				return;
@@ -390,7 +390,69 @@ var KART = {};
 		// Add hooks to follow location.hash
 		// TODO: use map.panTo
 	};
-	
+	measureControl = function () {
+		var measure, handleMeasure, checkbox, msg, sketchSymbolizers, style, styleMap;
+		sketchSymbolizers = {
+			"Point": {
+				pointRadius: 4,
+				graphicName: "square",
+				fillColor: "white",
+				fillOpacity: 1,
+				strokeWidth: 1,
+				strokeOpacity: 1,
+				strokeColor: "#333333"
+			},
+			"Line": {
+				strokeWidth: 3,
+				strokeOpacity: 1,
+				strokeColor: "#666666",
+				strokeDashstyle: "dash"
+			}
+		};
+		style = new OpenLayers.Style();
+		style.addRules([
+			new OpenLayers.Rule({symbolizer: sketchSymbolizers})
+		]);
+		styleMap = new OpenLayers.StyleMap({"default": style});
+
+
+		measure = new OpenLayers.Control.Measure(
+			OpenLayers.Handler.Path, {
+				persist: true,
+				handlerOptions: {
+					layerOptions: {styleMap: styleMap}
+				}
+			}
+		);
+		handleMeasure = function (event) {
+			var geometry = event.geometry,
+				units = event.units,
+				measure = event.measure,
+				element = document.getElementById('measureout');
+			if (event.type === "measure") {
+				msg.remove();
+				msg = STATUS.add("Målte opp " + measure.toFixed(3) + " " + units, 5);
+			}
+            element.innerHTML = ": " + measure.toFixed(3) + " " + units;
+		};
+		measure.events.register("measure", null, handleMeasure);
+		measure.events.register("measurepartial", null, handleMeasure);
+		
+		KART.enableMeasure = function (input) {		
+			if (input.checked) {
+				msg = STATUS.add("Tegn linjer på kartet for å måle. Dobbelklikk for å avslutte.");
+				measure.activate();
+				checkbox = input;
+			} else {
+				if (msg) {
+					msg.remove();
+				}
+				measure.deactivate();
+				document.getElementById('measureout').innerHTML = "";
+			}
+		};
+		return measure;
+	};
 	/*
 	 * init(): Initializes map. Installed as an onload-handler in the document
 	 */
@@ -422,7 +484,9 @@ var KART = {};
 		vectorselect[1].activate();
 
 		switcher = autoSwitcher(map, mapnik, statkart);
-
+		
+		map.addControl(measureControl());
+		
 		map.addControl(new OpenLayers.Control.Attribution());
 		map.addControl(new OpenLayers.Control.Graticule({
 			numPoints:	2,
