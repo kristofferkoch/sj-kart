@@ -1,9 +1,15 @@
 
-all: geonames_import featurecodes.js
+.PHONY: clean all check update clean_downloaded
 
+all: geonames_import featurecodes.js openlayers/build/OpenLayers.js
 
-clean:
-	rm -f NO.zip NO.txt featureCodes_nb.txt featurecodes.js jslint.js
+update: clean_download all
+
+clean_download:
+	rm -f featureCodes_nb.txt NO.zip
+
+clean: clean_download
+	rm -f NO.txt featurecodes.js jslint.js
 	
 check: jslint.js
 	rhino jslint.js measure.js
@@ -17,14 +23,21 @@ check: jslint.js
 jslint.js:
 	wget http://jslint.com/rhino/jslint.js
 NO.zip:
-	wget http://download.geonames.org/export/dump/NO.zip
+	wget -N http://download.geonames.org/export/dump/NO.zip
+	
 NO.txt: NO.zip
-	unzip NO.zip NO.txt
+	unzip -o NO.zip $@
+	
 geonames_import: NO.txt
 	python importGeonames.py < NO.txt
+	touch geonames_import
 	
 featureCodes_nb.txt:
-	wget http://download.geonames.org/export/dump/featureCodes_nb.txt
+	wget -N http://download.geonames.org/export/dump/featureCodes_nb.txt
 featurecodes.js: featureCodes_nb.txt
 	python featurejson.py < featureCodes_nb.txt > featurecodes.js
+
+openlayers/build/OpenLayers.js:
+	cp kart.cfg openlayers/build
+	cd openlayers/build && python build.py kart.cfg
 
