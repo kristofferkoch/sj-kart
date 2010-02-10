@@ -156,6 +156,7 @@ var KART = {};
 		r = new OpenLayers.Layer.Vector(
 			"Informasjon",
 			{
+				visibility: false,
 				strategies: [strategy],
 				protocol: new OpenLayers.Protocol.HTTP({
 					url: "geo.php",

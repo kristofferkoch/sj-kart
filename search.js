@@ -6,7 +6,7 @@ var SEARCH = {};
 (function () {
 	var stdProj	= new OpenLayers.Projection("EPSG:4326"),
 		resultDiv, div, closebutton, markers,
-		colors = ["blue", "brown", "darkgreen", "green", "orange", "paleblue", "pink", "purple", "red", "yellow"],
+		colors = ["red", "blue", "green", "orange", "pink", "purple", "yellow", "paleblue", "brown", "darkgreen"],
 		letters = [
 			"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K",
 			"L", "M", "N", "O", "P", "Q"

@@ -42,8 +42,8 @@
 			border-color: black;
 			font-size: 0.8em;
 			position:absolute;
-			bottom: 50px;
-			left: 0.2em;
+			top: 30px;
+			left: 60px;
 			opacity: 0.5;
 		}
 		#menu:hover {
@@ -107,7 +107,7 @@
 			display: none;
 			z-index: 101;
 			left: 50px;
-			top: 5%;
+			top: 200px;
 			background: white;
 			border-style: solid;
 			border-width: 1px;
@@ -151,7 +151,7 @@
 			<span class="attribution">Data fra <a href="http://www.geonames.org/" target="_blank">GeoNames</a>.</span>
 		</div>
 		<div id="menu">
-			<form onsubmit="SEARCH.doSearch(this); return false;">
+			<form onsubmit="SEARCH.doSearch(this); return false;" action="search.php">
 			<h2 class="menu">Meny:</h2>
 			<ul class="menu">
 				<li>
@@ -167,9 +167,9 @@
 			</ul>
 			</form>
 		</div>
-		<div id="status" unselectable="on">Vennligst vent..</div>
+		<div id="status">Vennligst vent..</div>
 		<div id="login">
-			<form onsubmit="USER.doLogin(this);return false;" onreset="USER.cancelLogin(this); return false;">
+			<form onsubmit="USER.doLogin(this);return false;" onreset="USER.cancelLogin(this); return false;" action="auth.php">
 				<table>
 					<tr>
 						<td class="formlabel">Brukernavn:</td>

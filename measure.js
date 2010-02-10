@@ -31,6 +31,7 @@ MochiKit.DOM.addLoadEvent(function () {
 	measure = new OpenLayers.Control.Measure(
 		OpenLayers.Handler.Path, {
 			persist: true,
+			geodesic: true,
 			handlerOptions: {
 				layerOptions: {styleMap: styleMap}
 			}
