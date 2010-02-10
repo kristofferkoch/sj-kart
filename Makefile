@@ -1,7 +1,7 @@
 
 .PHONY: clean all check update clean_downloaded
 
-all: geonames_import featurecodes.js openlayers/build/OpenLayers.js
+all: geonames_import featurecodes.js openlayers/OpenLayers.js
 
 update: clean_download all
 
@@ -41,3 +41,5 @@ openlayers/build/OpenLayers.js:
 	cp kart.cfg openlayers/build
 	cd openlayers/build && python build.py kart.cfg
 
+openlayers/OpenLayers.js: openlayers/build/OpenLayers.js
+	cd openlayers/ && ln -s build/OpenLayers.js .
